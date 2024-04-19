@@ -45,6 +45,13 @@ export default [
             "path": "/psurvey/list_data",
             "icon": "",
             "child": []
+          },
+          {
+            "title": "Prototype",
+            "path": "/psurvey/prototype",
+            "icon": "ph:app-window-duotone",
+            "child": [],
+            "meta": {}
           }
         ]
       }

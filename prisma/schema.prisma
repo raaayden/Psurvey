@@ -18,6 +18,8 @@ model user {
   userStatus       String?    @db.VarChar(255)
   userCreatedDate  DateTime?  @db.DateTime(0)
   userModifiedDate DateTime?  @db.DateTime(0)
+  product          product[]
+  receipt          receipt[]
   userrole         userrole[]
 }
 
@@ -36,20 +38,48 @@ model userrole {
   userRoleUserID      Int      @default(0)
   userRoleRoleID      Int      @default(0)
   userRoleCreatedDate DateTime @db.DateTime(0)
-  role                role     @relation(fields: [userRoleRoleID], references: [roleID], onUpdate: Restrict, map: "FK_userrole_role")
-  user                user     @relation(fields: [userRoleUserID], references: [userID], onUpdate: Restrict, map: "FK_userrole_user")
+  role                role     @relation(fields: [userRoleRoleID], references: [roleID], onDelete: NoAction, onUpdate: NoAction, map: "FK_userrole_role")
+  user                user     @relation(fields: [userRoleUserID], references: [userID], onDelete: NoAction, onUpdate: NoAction, map: "FK_userrole_user")
 
   @@index([userRoleRoleID], map: "FK_userrole_role")
   @@index([userRoleUserID], map: "FK_userrole_user")
 }
 
-model parking_log {
-  id               String    @id @default(uuid()) @unique
-  car_plate_number String?   @db.VarChar(20)
-  project          String?   @db.VarChar(255)
-  time_in          DateTime? @db.DateTime(0)
-  time_out         DateTime? @db.DateTime(0)
-  entry_exit_code  String?   @db.VarChar(255)
-  parker_type      String?   @db.VarChar(255)
-  surveyor         String?   @db.VarChar(255)
+model audit {
+  auditID          Int       @id @default(autoincrement())
+  auditIP          String?   @db.VarChar(255)
+  auditURL         String?   @db.VarChar(255)
+  auditURLMethod   String?   @db.VarChar(255)
+  auditURLPayload  String?   @db.VarChar(255)
+  auditCreatedDate DateTime? @db.DateTime(0)
+}
+
+model lookup {
+  lookupID           Int       @id @default(autoincrement())
+  lookupOrder        Int?
+  lookupTitle        String?   @db.VarChar(255)
+  lookupRefCode      String?   @db.VarChar(255)
+  lookupValue        String?   @db.VarChar(255)
+  lookupType         String?   @db.VarChar(255)
+  lookupStatus       String?   @db.VarChar(255)
+  lookupCreatedDate  DateTime? @db.DateTime(0)
+  lookupModifiedDate DateTime? @db.DateTime(0)
+}
+
+model product {
+  productID   Int     @id @default(autoincrement())
+  productName String? @db.VarChar(255)
+  userID      Int
+  user        user    @relation(fields: [userID], references: [userID], onDelete: NoAction, onUpdate: NoAction, map: "product_ibfk_1")
+
+  @@index([userID], map: "userID")
+}
+
+model receipt {
+  receiptID   Int       @id @default(autoincrement())
+  receiptDate DateTime? @db.DateTime(0)
+  userID      Int
+  user        user      @relation(fields: [userID], references: [userID], onDelete: NoAction, onUpdate: NoAction, map: "receipt_ibfk_1")
+
+  @@index([userID], map: "userID")
 }
