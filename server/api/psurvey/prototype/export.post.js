@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import PDFTable from "pdfkit-table";
 import { stringify } from "csv-stringify/sync";
 import fs from "fs";
 import path from "path";
@@ -14,7 +15,7 @@ export default defineEventHandler(async (event) => {
       };
     }
 
-    if (type !== "pdf" && type !== "excel") {
+    if (type !== "pdf" && type !== "excel" && type !== "pdf-table") {
       return {
         statusCode: 400,
         message: "Invalid type",
@@ -77,7 +78,7 @@ export default defineEventHandler(async (event) => {
           message: "Internal Server Error",
         };
       }
-    } else {
+    } else if (type == "excel") {
       // Generate excel file
       base64File = await generateExcelReport(
         hardCodeData,
@@ -89,6 +90,15 @@ export default defineEventHandler(async (event) => {
         total,
         accuracy
       );
+
+      if (!base64File) {
+        return {
+          statusCode: 500,
+          message: "Internal Server Error",
+        };
+      }
+    } else {
+      base64File = await generatePDFTable(data);
 
       if (!base64File) {
         return {
@@ -157,19 +167,14 @@ async function generatePDFReport(
 
     // Add content to the PDF document
     doc.font("Helvetica");
-    doc.fontSize(20).text("First Parking", {
+    doc.fontSize(18).text("First Parking", {
       align: "center",
     });
 
     doc.font("Helvetica-Bold");
-    doc.fontSize(20).text("TRAFFIC MATCHING REPORT", {
+    doc.fontSize(18).text("TRAFFIC MATCHING REPORT", {
       align: "center",
       underline: true,
-    });
-
-    doc.font("Helvetica");
-    doc.fontSize(20).text("Page 1 of 1", {
-      align: "center",
     });
 
     doc.moveDown();
@@ -318,6 +323,97 @@ async function generateExcelReport(
     const base64File = Buffer.from(file).toString("base64");
 
     console.log("base64File: ", base64File);
+
+    return base64File;
+  } catch (error) {
+    console.log("Error: ", error);
+    return false;
+  }
+}
+
+async function generatePDFTable(data) {
+  try {
+    const pdfFolderPath = path.join(process.cwd(), "assets", "report");
+    console.log("pdfFolderPath: ", pdfFolderPath);
+
+    // Check if the folder exists, if not create it
+    if (!fs.existsSync(pdfFolderPath)) {
+      fs.mkdirSync(pdfFolderPath, { recursive: true });
+    }
+
+    // Specify the path to save the PDF file
+    const pdfPath = path.join(
+      pdfFolderPath,
+      "traffic-matching-report-table.pdf"
+    );
+
+    // Create a new PDF document
+    const doc = new PDFTable();
+
+    doc.pipe(fs.createWriteStream(pdfPath));
+
+    // Add content to the PDF document
+    doc.font("Helvetica");
+    doc.fontSize(20).text("First Parking", {
+      align: "center",
+    });
+
+    doc.font("Helvetica-Bold");
+    doc.fontSize(20).text("TRAFFIC MATCHING REPORT", {
+      align: "center",
+      underline: true,
+    });
+
+    doc.font("Helvetica");
+    doc.fontSize(20).text("Page 1 of 1", {
+      align: "center",
+    });
+
+    doc.moveDown();
+
+    let rows = [];
+
+    // Get Object Keys for the header
+    let header = Object.keys(data[0]);
+    // Remove underscore from the header
+    header.forEach((element, index) => {
+      header[index] = element.replace(/_/g, " ");
+    });
+
+    // Get Object Values for the rows
+    for (let i = 0; i < data.length; i++) {
+      const row = Object.values(data[i]);
+      rows.push(row);
+    }
+
+    if (!header || !rows) {
+      return false;
+    }
+
+    const table = {
+      headers: header,
+      rows: [...rows],
+    };
+
+    doc.table(table, {
+      prepareHeader: () => doc.font("Helvetica-Bold").fontSize(12),
+      prepareRow: (row, i) => doc.font("Helvetica").fontSize(12),
+    });
+
+    doc.end();
+
+    // Listen for the finish event to know when the PDF is created
+    doc.on("end", function () {
+      console.log("PDF created");
+    });
+
+    // Get the file and convert to base64 and return
+    const file = fs.readFileSync(pdfPath);
+    if (!file) {
+      return false;
+    }
+
+    const base64File = Buffer.from(file).toString("base64");
 
     return base64File;
   } catch (error) {
