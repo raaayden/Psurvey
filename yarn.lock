@@ -7805,7 +7805,14 @@ pdf-lib@^1.17.1:
     pako "^1.0.11"
     tslib "^1.11.1"
 
-pdfkit@^0.15.0:
+pdfkit-table@^0.1.99:
+  version "0.1.99"
+  resolved "https://registry.yarnpkg.com/pdfkit-table/-/pdfkit-table-0.1.99.tgz#66854b91e7a811a4e89b800f26b134426d21a7a3"
+  integrity sha512-BaunFJ7cvKqIPONzX9FXUpeC/3iJeLo0v2nVNjCccAxdMXKvDMBjxyF4wZhKOYlmP+nYZcikf9ByVJeCzjNK6g==
+  dependencies:
+    pdfkit latest
+
+pdfkit@^0.15.0, pdfkit@latest:
   version "0.15.0"
   resolved "https://registry.yarnpkg.com/pdfkit/-/pdfkit-0.15.0.tgz#7152f1bfa500c37d25b5f8cd4850db09a8108941"
   integrity sha512-Z0dx0sEPKLW2kbThS1SWZ0iSHlRPoFMpP+oSjNrtwRjsfGivwE+r6emyEFwQG/fx1Ri0AGUHmDcGOSMMlLLnSg==

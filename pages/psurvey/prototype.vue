@@ -84,6 +84,10 @@ const exportReport = async (type) => {
         linkSource = `data:application/pdf;base64,${data.value.data}`;
         downloadLink = document.createElement("a");
         fileName = "report.pdf";
+      } else if (type == "pdf-table") {
+        linkSource = `data:application/pdf;base64,${data.value.data}`;
+        downloadLink = document.createElement("a");
+        fileName = "report-table.pdf";
       }
 
       if (!downloadLink) return;
@@ -123,6 +127,11 @@ const exportReport = async (type) => {
           <rs-button variant="danger" @click="exportReport('pdf')">
             <Icon name="vscode-icons:file-type-pdf2" class="mr-2" />
             Export PDF
+          </rs-button>
+
+          <rs-button variant="danger" @click="exportReport('pdf-table')">
+            <Icon name="vscode-icons:file-type-pdf2" class="mr-2" />
+            Export PDF Table
           </rs-button>
 
           <rs-button variant="success" @click="exportReport('excel')">
