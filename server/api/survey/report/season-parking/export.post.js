@@ -1,18 +1,12 @@
 import PDFTable from "pdfkit-table";
 import fs from "fs";
 import path from "path";
+import { DateTime } from "luxon";
 
 export default defineEventHandler(async (event) => {
   try {
-    const {
-      projectName,
-      dateOfReport,
-      surveyDateFrom,
-      surveyDateTo,
-      totalNoOfEntry,
-      multipleEntryList,
-      noOfEntry,
-    } = await readBody(event);
+    const { projectName, dateOfReport, date, seasonParkingList } =
+      await readBody(event);
 
     if (!projectName || !dateOfReport)
       return {
@@ -23,19 +17,9 @@ export default defineEventHandler(async (event) => {
     const base64File = await generatePDFReport(
       projectName,
       dateOfReport,
-      surveyDateFrom,
-      surveyDateTo,
-      totalNoOfEntry,
-      multipleEntryList,
-      noOfEntry
+      date,
+      seasonParkingList
     );
-
-    if (!base64File) {
-      return {
-        statusCode: 400,
-        message: "Something went wrong. Please try again.",
-      };
-    }
 
     return {
       statusCode: 200,
@@ -54,11 +38,8 @@ export default defineEventHandler(async (event) => {
 async function generatePDFReport(
   projectName,
   dateOfReport,
-  surveyDateFrom,
-  surveyDateTo,
-  totalNoOfEntry,
-  multipleEntryList,
-  noOfEntry
+  date,
+  seasonParkingList
 ) {
   try {
     // Create a folder to save the PDF file
@@ -71,7 +52,7 @@ async function generatePDFReport(
     }
 
     // Specify the path to save the PDF file
-    const pdfPath = path.join(pdfFolderPath, "multiple-entry.pdf");
+    const pdfPath = path.join(pdfFolderPath, "season-parking.pdf");
     console.log("pdfPath: ", pdfPath);
 
     // Create a new PDF document
@@ -100,7 +81,7 @@ async function generatePDFReport(
     });
 
     doc.font("Helvetica-Bold");
-    doc.fontSize(18).text("MULTIPLE ENTRY REPORT", {
+    doc.fontSize(18).text("SEASON PARKING REPORT", {
       align: "center",
       underline: true,
     });
@@ -117,31 +98,21 @@ async function generatePDFReport(
     doc.moveDown();
     addText("Project Name:", projectName, true);
     doc.moveDown();
-
-    doc.font("Helvetica-Bold").text("Time of Survey", { continued: true });
-    doc.font("Helvetica-Bold").text("   From: ", { continued: true });
-    doc
-      .font("Helvetica")
-      .text(surveyDateFrom ? surveyDateFrom : "-", { continued: true });
-    doc.font("Helvetica-Bold").text("   To: ", { continued: true });
-    doc.font("Helvetica").text(surveyDateTo ? surveyDateTo : "-");
-    doc.moveDown();
-
-    addText("Total No. of Entry:", totalNoOfEntry, true);
-
-    doc.moveDown();
-
-    addText("No. of Entry", noOfEntry, true);
+    addText(
+      "Date:",
+      date ? DateTime.fromISO(date).toFormat("dd/MM/yyyy") : "-",
+      true
+    );
 
     doc.moveDown();
     doc.moveDown();
 
     // Get Object Keys for the header
-    let header = Object.keys(multipleEntryList[0]);
+    let header = Object.keys(seasonParkingList[0]);
     header = header.map((element) => camelCaseToTitleCase(element));
 
     // Get Object Values for the rows
-    const rows = multipleEntryList.map((obj) => Object.values(obj));
+    const rows = seasonParkingList.map((obj) => Object.values(obj));
 
     // Create a table for Multiple Entry List
     doc.table(
