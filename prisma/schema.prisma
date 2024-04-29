@@ -7,6 +7,108 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model audit {
+  auditID          Int       @id @default(autoincrement())
+  auditIP          String?   @db.VarChar(255)
+  auditURL         String?   @db.VarChar(255)
+  auditURLMethod   String?   @db.VarChar(255)
+  auditURLPayload  String?   @db.VarChar(255)
+  auditCreatedDate DateTime? @db.DateTime(0)
+}
+
+model config_ref {
+  ref_id                                       Int           @id @default(autoincrement())
+  ref_type                                     String?       @unique(map: "ref_type") @db.VarChar(255)
+  ref_desc                                     String?       @db.VarChar(255)
+  ref_status                                   String?       @db.VarChar(255)
+  created_by                                   String?       @db.VarChar(255)
+  created_at                                   DateTime?     @db.Timestamp(0)
+  updated_by                                   String?       @db.VarChar(255)
+  updated_at                                   DateTime?     @db.Timestamp(0)
+  survey_list_survey_list_ref_idToconfig_ref   survey_list[] @relation("survey_list_ref_idToconfig_ref")
+  survey_list_survey_list_ref_typeToconfig_ref survey_list[] @relation("survey_list_ref_typeToconfig_ref")
+}
+
+model lookup {
+  lookupID           Int       @id @default(autoincrement())
+  lookupOrder        Int?
+  lookupCode         String?   @db.VarChar(255)
+  lookupTitle        String?   @db.VarChar(255)
+  lookupRefCode      String?   @db.VarChar(255)
+  lookupValue        String?   @db.VarChar(255)
+  lookupType         String?   @db.VarChar(255)
+  lookupStatus       String?   @db.VarChar(255)
+  lookupCreatedDate  DateTime? @db.DateTime(0)
+  lookupModifiedDate DateTime? @db.DateTime(0)
+}
+
+model parking_season {
+  season_id     Int       @id @default(autoincrement())
+  vehicle_id    Int?
+  season_status String?   @db.VarChar(255)
+  created_by    String?   @db.VarChar(255)
+  created_at    DateTime? @db.Timestamp(0)
+  updated_by    String?   @db.VarChar(255)
+  updated_at    DateTime? @db.Timestamp(0)
+  vehicle       vehicle?  @relation(fields: [vehicle_id], references: [vehicle_id], onDelete: NoAction, onUpdate: NoAction, map: "parking_season_ibfk_1")
+
+  @@index([vehicle_id], map: "vehicle_id")
+}
+
+model project {
+  project_id   Int           @id @default(autoincrement())
+  project_name String?       @unique(map: "project_name") @db.VarChar(255)
+  created_by   String?       @db.VarChar(255)
+  created_at   DateTime?     @db.Timestamp(0)
+  updated_by   String?       @db.VarChar(255)
+  updated_at   DateTime?     @db.Timestamp(0)
+  survey_list  survey_list[]
+}
+
+model role {
+  roleID           Int        @id @default(autoincrement())
+  roleName         String?    @db.VarChar(255)
+  roleDescription  String?    @db.VarChar(255)
+  roleStatus       String?    @db.VarChar(255)
+  roleCreatedDate  DateTime?  @db.DateTime(0)
+  roleModifiedDate DateTime?  @db.DateTime(0)
+  userrole         userrole[]
+}
+
+model survey_list {
+  survey_list_id                              Int         @id @default(autoincrement())
+  file_id                                     Int?
+  vehicle_id                                  Int?
+  project_id                                  Int?
+  ref_id                                      Int?
+  ref_type                                    String?     @db.VarChar(255)
+  survey_id                                   String?     @unique(map: "survey_id") @db.VarChar(255)
+  vehicle_number                              Int?
+  vehicle_timein                              DateTime?   @db.Timestamp(0)
+  vehicle_timeout                             DateTime?   @db.Timestamp(0)
+  project_name                                String?     @db.VarChar(255)
+  project_eecode                              String?     @db.VarChar(255)
+  project_parker_type                         String?     @db.VarChar(255)
+  project_surveyor_name                       String?     @db.VarChar(255)
+  vehicle_status                              String?     @db.VarChar(255)
+  data_status                                 String?     @db.VarChar(255)
+  created_by                                  String?     @db.VarChar(255)
+  created_at                                  DateTime?   @db.Timestamp(0)
+  updated_by                                  String?     @db.VarChar(255)
+  updated_at                                  DateTime?   @db.Timestamp(0)
+  config_ref_survey_list_ref_idToconfig_ref   config_ref? @relation("survey_list_ref_idToconfig_ref", fields: [ref_id], references: [ref_id], onDelete: NoAction, onUpdate: NoAction, map: "survey_list_ibfk_3")
+  config_ref_survey_list_ref_typeToconfig_ref config_ref? @relation("survey_list_ref_typeToconfig_ref", fields: [ref_type], references: [ref_type], onDelete: NoAction, onUpdate: NoAction, map: "survey_list_ibfk_4")
+  project                                     project?    @relation(fields: [project_id], references: [project_id], onDelete: Restrict, onUpdate: Restrict, map: "survey_list_ibfk_2")
+  file                                        file?       @relation(fields: [file_id], references: [file_id], onDelete: NoAction, onUpdate: NoAction, map: "survey_list_ibfk_6")
+  vehicle                                     vehicle?    @relation(fields: [vehicle_id], references: [vehicle_id], onDelete: NoAction, onUpdate: NoAction, map: "survey_list_ibfk_7")
+
+  @@index([project_id], map: "project_id")
+  @@index([ref_id], map: "ref_id")
+  @@index([ref_type], map: "ref_type")
+  @@index([file_id], map: "file_id")
+  @@index([vehicle_id], map: "vehicle_id")
+}
+
 model user {
   userID           Int        @id @default(autoincrement())
   userSecretKey    String?    @db.VarChar(255)
@@ -18,16 +120,6 @@ model user {
   userStatus       String?    @db.VarChar(255)
   userCreatedDate  DateTime?  @db.DateTime(0)
   userModifiedDate DateTime?  @db.DateTime(0)
-  userrole         userrole[]
-}
-
-model role {
-  roleID           Int        @id @default(autoincrement())
-  roleName         String?    @db.VarChar(255)
-  roleDescription  String?    @db.VarChar(255)
-  roleStatus       String?    @db.VarChar(255)
-  roleCreatedDate  DateTime?  @db.DateTime(0)
-  roleModifiedDate DateTime?  @db.DateTime(0)
   userrole         userrole[]
 }
 
@@ -43,23 +135,36 @@ model userrole {
   @@index([userRoleUserID], map: "FK_userrole_user")
 }
 
-model audit {
-  auditID          Int       @id @default(autoincrement())
-  auditIP          String?   @db.VarChar(255)
-  auditURL         String?   @db.VarChar(255)
-  auditURLMethod   String?   @db.VarChar(255)
-  auditURLPayload  String?   @db.VarChar(255)
-  auditCreatedDate DateTime? @db.DateTime(0)
+model file {
+  file_id     Int           @id @default(autoincrement())
+  file_name   String?       @unique(map: "file_name") @db.VarChar(255)
+  file_type   String?       @db.VarChar(255)
+  created_by  String?       @db.VarChar(255)
+  created_at  DateTime?     @db.Timestamp(0)
+  updated_by  String?       @db.VarChar(255)
+  updated_at  DateTime?     @db.Timestamp(0)
+  survey_list survey_list[]
 }
 
-model lookup {
-  lookupID           Int       @id @default(autoincrement())
-  lookupOrder        Int?
-  lookupTitle        String?   @db.VarChar(255)
-  lookupRefCode      String?   @db.VarChar(255)
-  lookupValue        String?   @db.VarChar(255)
-  lookupType         String?   @db.VarChar(255)
-  lookupStatus       String?   @db.VarChar(255)
-  lookupCreatedDate  DateTime? @db.DateTime(0)
-  lookupModifiedDate DateTime? @db.DateTime(0)
+model vehicle {
+  vehicle_id           Int              @id @default(autoincrement())
+  vehicle_plate_number Int?             @unique(map: "vehicle_plate_number")
+  vehicle_type         String?          @db.VarChar(255)
+  created_by           String?          @db.VarChar(255)
+  created_at           DateTime?        @db.Timestamp(0)
+  updated_by           String?          @db.VarChar(255)
+  update_at            DateTime?        @db.Timestamp(0)
+  parking_season       parking_season[]
+  survey_list          survey_list[]
+}
+
+model parking_season_rule {
+  parking_season_rule_id Int       @id @default(autoincrement())
+  als_period             Int?
+  multiple_entry_period  Int?
+  rule_status            String?   @db.VarChar(255)
+  created_by             String?   @db.VarChar(255)
+  created_at             DateTime? @db.Timestamp(0)
+  updated_by             String?   @db.VarChar(255)
+  updated_at             DateTime? @db.Timestamp(0)
 }

@@ -17,8 +17,7 @@ onMounted(() => {
   }, 1000);
 
   // Get theme from localStorage
-  let theme = localStorage.getItem("theme") || "rose";
-  document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.setAttribute("data-theme", "default");
 });
 </script>
 
