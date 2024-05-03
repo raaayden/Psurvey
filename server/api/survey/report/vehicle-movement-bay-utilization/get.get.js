@@ -87,68 +87,123 @@ export default defineEventHandler(async (event) => {
     });
 
     let carTotalIn = 0;
-    // Loop through each survey list
-    for (let i = 0; i < getSurveyList.length; i++) {
-      const survey = getSurveyList[i];
+    let carTotalEntry = 0;
+    let carTotalExit = 0;
+    let maxTimeCarInPark = {
+      fromTime: "",
+      toTime: "",
+      value: 0,
+    };
+    let minTimeCarInPark = {
+      fromTime: "11:00:00 PM",
+      toTime: "11:29:00 PM",
+      value: 0,
+    };
 
-      console.log(survey);
+    for (let i = 0; i < data.length; i++) {
+      const lookup = data[i];
 
-      // Get the time in and time out of the vehicle
-      const convertTimeIn = DateTime.fromJSDate(survey.vehicle_timein).toFormat(
-        "h:mm:ss"
+      // convert to 24 hours format
+      const fromTime = DateTime.fromFormat(
+        lookup.fromTime,
+        "h:mm:ss a"
+      ).toFormat("HH:mm:ss");
+      const toTime = DateTime.fromFormat(lookup.toTime, "h:mm:ss a").toFormat(
+        "HH:mm:ss"
       );
-      const convertTimeOut = DateTime.fromJSDate(
-        survey.vehicle_timeout
-      ).toFormat("h:mm:ss");
 
-      // From the convertTimeIn and convertTimeOut, compare with data value to calculate the carEntry, carExit and carInPark
-      for (let j = 0; j < data.length; j++) {
-        const dataValue = data[j];
+      // let toTime = lookup.toTime.split(" ")[0];
 
-        console.log("Data Value ", dataValue);
-        // carTotalIn = parseInt(dataValue.carInPark);
+      let carEntry = 0;
+      let carExit = 0;
+      let carInPark = 0;
+      let date = "";
 
-        // Convert fromTime and toTime to 24 hours format
-        const fromTime = dataValue.fromTime.split(" ")[0];
-        const toTime = dataValue.toTime.split(" ")[0];
+      for (let j = 0; j < getSurveyList.length; j++) {
+        const survey = getSurveyList[j];
 
-        console.log("From Time ", fromTime);
-        console.log("To Time ", toTime);
+        if (!date)
+          date = DateTime.fromJSDate(survey.vehicle_timein).toFormat(
+            "dd/MM/yyyy"
+          );
 
-        dataValue.carInPark = carTotalIn;
+        console.log("date 1", date);
 
-        // Check if the vehicle time in is between the fromTime and toTime
+        const convertTimeIn = DateTime.fromJSDate(
+          survey.vehicle_timein
+        ).toFormat("HH:mm:ss");
+        const convertTimeOut = DateTime.fromJSDate(
+          survey.vehicle_timeout
+        ).toFormat("HH:mm:ss");
+
+        carInPark = carTotalIn;
+
         if (convertTimeIn >= fromTime && convertTimeIn <= toTime) {
-          console.log("Car Entry ");
-          dataValue.carEntry += 1;
-          dataValue.carInPark += 1;
+          carEntry += 1;
+          carInPark += 1;
           carTotalIn += 1;
+          carTotalEntry += 1;
+
+          if (carInPark >= maxTimeCarInPark.value) {
+            maxTimeCarInPark.fromTime = DateTime.fromFormat(
+              fromTime,
+              "HH:mm:ss"
+            ).toFormat("h:mm:ss a");
+            maxTimeCarInPark.toTime = DateTime.fromFormat(
+              toTime,
+              "HH:mm:ss"
+            ).toFormat("h:mm:ss a");
+            maxTimeCarInPark.value = carInPark;
+          }
         }
 
-        // Check if the vehicle time out is between the fromTime and toTime
         if (convertTimeOut >= fromTime && convertTimeOut <= toTime) {
-          console.log("Car Exit ");
-          dataValue.carExit += 1;
-          dataValue.carInPark -= 1;
+          carExit += 1;
+          carInPark -= 1;
           carTotalIn -= 1;
-        }
+          carTotalExit += 1;
 
-        console.log("------------------------------------- ");
-        console.log("Car In Park ", carTotalIn);
-        console.log("Car Entry ", dataValue.carEntry);
-        console.log("Car Exit ", dataValue.carExit);
-        console.log("------------------------------------- ");
+          if (carInPark < minTimeCarInPark.value) {
+            minTimeCarInPark.fromTime = DateTime.fromFormat(
+              fromTime,
+              "HH:mm:ss"
+            ).toFormat("h:mm:ss a");
+            minTimeCarInPark.toTime = DateTime.fromFormat(
+              toTime,
+              "HH:mm:ss"
+            ).toFormat("h:mm:ss a");
+            minTimeCarInPark.value = carInPark;
+          }
+        }
       }
+
+      data[i] = {
+        ...data[i],
+        date,
+        carEntry,
+        carExit,
+        carInPark,
+      };
     }
 
-    console.log(carTotalIn);
+    console.log("carTotalIn", carTotalIn);
+    console.log("carTotalEntry", carTotalEntry);
+    console.log("carTotalExit", carTotalExit);
+    console.log("maxTimeCarInPark", maxTimeCarInPark);
+    console.log("minTimeCarInPark", minTimeCarInPark);
 
     return {
       statusCode: 200,
       message: "Success",
       data: {
         dateOfReport,
+        projectName,
         vmbuList: data,
+        carTotalIn,
+        carTotalEntry,
+        carTotalExit,
+        maxTimeCarInPark,
+        minTimeCarInPark,
       },
     };
   } catch (error) {

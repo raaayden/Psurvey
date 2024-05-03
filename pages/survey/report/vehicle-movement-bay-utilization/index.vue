@@ -1,4 +1,6 @@
 <script setup>
+import { DateTime } from "luxon";
+
 definePageMeta({
   title: "Vehicle Movement & Bay Utilization",
 });
@@ -86,10 +88,12 @@ const exportReport = async () => {
           parkerType: filter.value.parkerType,
           surveyDateFrom: filter.value.surveyDateFrom,
           surveyDateTo: filter.value.surveyDateTo,
-          alsList: reportData.value.alsList,
-          totalAllALSHours: reportData.value.totalAllALSHours,
-          totalVolume: reportData.value.totalVolume,
-          averageALS: reportData.value.averageALS,
+          vmbuList: reportData.value.vmbuList,
+          carTotalEntry: reportData.value.carTotalEntry,
+          carTotalExit: reportData.value.carTotalExit,
+          carTotalIn: reportData.value.carTotalIn,
+          maxTimeCarInPark: reportData.value.maxTimeCarInPark,
+          minTimeCarInPark: reportData.value.minTimeCarInPark,
         },
       }
     );
@@ -103,7 +107,7 @@ const exportReport = async () => {
 
       const linkSource = `data:application/pdf;base64,${data.value.data}`;
       const downloadLink = document.createElement("a");
-      const fileName = "average-length-stay.pdf";
+      const fileName = "vehicle-movement-and-bay-utilization.pdf";
 
       if (!downloadLink) return;
 
@@ -234,16 +238,34 @@ const exportReport = async () => {
       <template #body>
         <div class="border p-5 rounded-lg bg-secondary text-white">
           <div class="flex items-center gap-3">
-            <span class="text-base font-semibold">Grand Total of Volume:</span>
+            <span class="text-base font-semibold">Total Number of Entry:</span>
             <span class="text-lg">
-              {{ reportData.totalVolume }}
+              {{ reportData.carTotalEntry }}
             </span>
           </div>
 
           <div class="flex items-center gap-3">
-            <span class="text-base font-semibold">Average ALS:</span>
+            <span class="text-base font-semibold">Total Number of Exit:</span>
             <span class="text-lg">
-              {{ reportData.averageALS }}
+              {{ reportData.carTotalExit }}
+            </span>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="text-base font-semibold">Max Car In Park:</span>
+            <span class="text-lg">
+              {{ reportData.maxTimeCarInPark.value }}
+              {{ reportData.maxTimeCarInPark.fromTime }} To
+              {{ reportData.maxTimeCarInPark.toTime }}
+            </span>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="text-base font-semibold">Min Car In Park:</span>
+            <span class="text-lg">
+              {{ reportData.minTimeCarInPark.value }}
+              {{ reportData.minTimeCarInPark.fromTime }} To
+              {{ reportData.minTimeCarInPark.toTime }}
             </span>
           </div>
         </div>

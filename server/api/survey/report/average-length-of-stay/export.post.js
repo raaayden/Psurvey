@@ -99,47 +99,6 @@ async function generatePDFReport(
       }
     }
 
-    let pageNumber = 1;
-
-    // Add content to the PDF document
-    doc.font("Helvetica");
-    doc.fontSize(18).text("First Parking", {
-      align: "center",
-    });
-
-    doc.font("Helvetica-Bold");
-    doc.fontSize(18).text("LENGTH OF STAY REPORT", {
-      align: "center",
-      underline: true,
-    });
-
-    doc.font("Helvetica");
-    doc.fontSize(18).text("Page 1 of 2", {
-      align: "center",
-    });
-
-    doc.moveDown();
-
-    doc.fontSize(12);
-    addText("Date of Report:", dateOfReport, true);
-    doc.moveDown();
-    addText("Project Name:", projectName, true);
-    doc.moveDown();
-
-    doc.font("Helvetica-Bold").text("Time of Survey", { continued: true });
-    doc.font("Helvetica-Bold").text("   From: ", { continued: true });
-    doc
-      .font("Helvetica")
-      .text(surveyDateFrom ? surveyDateFrom : "-", { continued: true });
-    doc.font("Helvetica-Bold").text("   To: ", { continued: true });
-    doc.font("Helvetica").text(surveyDateTo ? surveyDateTo : "-");
-
-    doc.moveDown();
-    addText("Grace Period Min:", gracePeriod, true);
-
-    doc.moveDown();
-    doc.moveDown();
-
     // Create a table for ALS List
 
     // Get Object Keys for the header
@@ -153,6 +112,7 @@ async function generatePDFReport(
       const pageSize = 25; // Example number, adjust as needed
       const numPages = Math.ceil(rows.length / pageSize);
 
+      let pageNumber = 1;
       let startIndex = 0;
 
       while (pageNumber <= numPages) {
@@ -161,24 +121,46 @@ async function generatePDFReport(
           doc.addPage();
         }
 
-        if (pageNumber !== 1) {
-          // Add header
-          doc.font("Helvetica");
-          doc.fontSize(18).text("First Parking", {
-            align: "center",
-          });
+        // Add header
+        doc.font("Helvetica");
+        doc.fontSize(18).text("First Parking", {
+          align: "center",
+        });
 
-          doc.font("Helvetica-Bold");
-          doc.fontSize(18).text("LENGTH OF STAY REPORT", {
-            align: "center",
-            underline: true,
-          });
+        doc.font("Helvetica-Bold");
+        doc.fontSize(18).text("LENGTH OF STAY REPORT", {
+          align: "center",
+          underline: true,
+        });
 
-          doc.font("Helvetica");
-          doc.fontSize(18).text("Page 2 of 2", {
-            align: "center",
-          });
+        doc.font("Helvetica");
+        doc.fontSize(18).text(`Page ${pageNumber} of ${numPages}`, {
+          align: "center",
+        });
 
+        doc.moveDown();
+
+        if (pageNumber === 1) {
+          doc.fontSize(12);
+          addText("Date of Report:", dateOfReport, true);
+          doc.moveDown();
+          addText("Project Name:", projectName, true);
+          doc.moveDown();
+
+          doc
+            .font("Helvetica-Bold")
+            .text("Time of Survey", { continued: true });
+          doc.font("Helvetica-Bold").text("   From: ", { continued: true });
+          doc
+            .font("Helvetica")
+            .text(surveyDateFrom ? surveyDateFrom : "-", { continued: true });
+          doc.font("Helvetica-Bold").text("   To: ", { continued: true });
+          doc.font("Helvetica").text(surveyDateTo ? surveyDateTo : "-");
+
+          doc.moveDown();
+          addText("Grace Period Min:", gracePeriod, true);
+
+          doc.moveDown();
           doc.moveDown();
         }
 

@@ -9,14 +9,15 @@ export default defineEventHandler(async (event) => {
       dateOfReport,
       surveyDateFrom,
       surveyDateTo,
-      gracePeriod,
-      alsList,
-      totalAllALSHours,
-      averageALS,
-      totalVolume,
+      vmbuList,
+      carTotalEntry,
+      carTotalExit,
+      carTotalIn,
+      maxTimeCarInPark,
+      minTimeCarInPark,
     } = await readBody(event);
 
-    if (!projectName || !dateOfReport || !alsList) {
+    if (!projectName || !dateOfReport || !vmbuList) {
       return {
         statusCode: 400,
         message: "Bad Request",
@@ -28,11 +29,12 @@ export default defineEventHandler(async (event) => {
       dateOfReport,
       surveyDateFrom,
       surveyDateTo,
-      gracePeriod,
-      alsList,
-      totalAllALSHours,
-      averageALS,
-      totalVolume
+      vmbuList,
+      carTotalEntry,
+      carTotalExit,
+      carTotalIn,
+      maxTimeCarInPark,
+      minTimeCarInPark
     );
 
     if (!base64File) {
@@ -60,11 +62,12 @@ async function generatePDFReport(
   dateOfReport,
   surveyDateFrom,
   surveyDateTo,
-  gracePeriod,
-  alsList,
-  totalAllALSHours,
-  averageALS,
-  totalVolume
+  vmbuList,
+  carTotalEntry,
+  carTotalExit,
+  carTotalIn,
+  maxTimeCarInPark,
+  minTimeCarInPark
 ) {
   try {
     // Create a folder to save the PDF file
@@ -77,7 +80,10 @@ async function generatePDFReport(
     }
 
     // Specify the path to save the PDF file
-    const pdfPath = path.join(pdfFolderPath, "average-length-stay.pdf");
+    const pdfPath = path.join(
+      pdfFolderPath,
+      "vehicle-movement-and-bay-utilization.pdf"
+    );
     console.log("pdfPath: ", pdfPath);
 
     // Create a new PDF document
@@ -99,60 +105,18 @@ async function generatePDFReport(
       }
     }
 
-    let pageNumber = 1;
-
-    // Add content to the PDF document
-    doc.font("Helvetica");
-    doc.fontSize(18).text("First Parking", {
-      align: "center",
-    });
-
-    doc.font("Helvetica-Bold");
-    doc.fontSize(18).text("VEHICLE MOVEMENT & BAY UTILIZATION REPORT", {
-      align: "center",
-      underline: true,
-    });
-
-    doc.font("Helvetica");
-    doc.fontSize(18).text("Page 1 of 2", {
-      align: "center",
-    });
-
-    doc.moveDown();
-
-    doc.fontSize(12);
-    addText("Date of Report:", dateOfReport, true);
-    doc.moveDown();
-    addText("Project Name:", projectName, true);
-    doc.moveDown();
-
-    doc.font("Helvetica-Bold").text("Time of Survey", { continued: true });
-    doc.font("Helvetica-Bold").text("   From: ", { continued: true });
-    doc
-      .font("Helvetica")
-      .text(surveyDateFrom ? surveyDateFrom : "-", { continued: true });
-    doc.font("Helvetica-Bold").text("   To: ", { continued: true });
-    doc.font("Helvetica").text(surveyDateTo ? surveyDateTo : "-");
-
-    doc.moveDown();
-    addText("Grace Period Min:", gracePeriod, true);
-
-    doc.moveDown();
-    doc.moveDown();
-
-    // Create a table for ALS List
-
     // Get Object Keys for the header
-    let header = Object.keys(alsList[0]);
+    let header = Object.keys(vmbuList[0]);
     header = header.map((element) => camelCaseToTitleCase(element));
 
     // Get Object Values for the rows
-    const rows = alsList.map((obj) => Object.values(obj));
+    const rows = vmbuList.map((obj) => Object.values(obj));
 
     function addTableWithHeaders(header, rows) {
-      const pageSize = 25; // Example number, adjust as needed
+      let pageSize = 18; // Example number, adjust as needed
       const numPages = Math.ceil(rows.length / pageSize);
 
+      let pageNumber = 1;
       let startIndex = 0;
 
       while (pageNumber <= numPages) {
@@ -161,24 +125,77 @@ async function generatePDFReport(
           doc.addPage();
         }
 
-        if (pageNumber !== 1) {
-          // Add header
-          doc.font("Helvetica");
-          doc.fontSize(18).text("First Parking", {
-            align: "center",
-          });
+        // Add content to the PDF document
+        doc.font("Helvetica");
+        doc.fontSize(18).text("First Parking", {
+          align: "center",
+        });
 
-          doc.font("Helvetica-Bold");
-          doc.fontSize(18).text("VEHICLE MOVEMENT & BAY UTILIZATION REPORT", {
-            align: "center",
-            underline: true,
-          });
+        doc.font("Helvetica-Bold");
+        doc.fontSize(18).text("VEHICLE MOVEMENT & BAY UTILIZATION REPORT", {
+          align: "center",
+          underline: true,
+        });
 
-          doc.font("Helvetica");
-          doc.fontSize(18).text("Page 2 of 2", {
-            align: "center",
-          });
+        doc.font("Helvetica");
+        doc.fontSize(18).text(`Page ${pageNumber} of ${numPages}`, {
+          align: "center",
+        });
 
+        doc.moveDown();
+
+        if (pageNumber === 1) {
+          doc.fontSize(12);
+          addText("Date of Report:", dateOfReport, true);
+          doc.moveDown();
+          addText("Project Name:", projectName, true);
+          doc.moveDown();
+
+          doc
+            .font("Helvetica-Bold")
+            .text("Time of Survey", { continued: true });
+          doc.font("Helvetica-Bold").text("   From: ", { continued: true });
+          doc
+            .font("Helvetica")
+            .text(surveyDateFrom ? surveyDateFrom : "-", { continued: true });
+          doc.font("Helvetica-Bold").text("   To: ", { continued: true });
+          doc.font("Helvetica").text(surveyDateTo ? surveyDateTo : "-");
+
+          doc.moveDown();
+          doc.moveDown();
+
+          addText(
+            "Total Number of Entry: ",
+            carTotalEntry ? carTotalEntry.toString() : "-",
+            false
+          );
+          doc.moveDown();
+
+          addText(
+            "Total Number of Exit: ",
+            carTotalExit ? carTotalExit.toString() : "-",
+            false
+          );
+          doc.moveDown();
+
+          addText(
+            "Max Car In Park: ",
+            maxTimeCarInPark
+              ? `${maxTimeCarInPark.value} ${maxTimeCarInPark.fromTime} To ${maxTimeCarInPark.toTime}`
+              : "-",
+            false
+          );
+          doc.moveDown();
+
+          addText(
+            "Min Car In Park: ",
+            minTimeCarInPark
+              ? `${minTimeCarInPark.value} ${minTimeCarInPark.fromTime} To ${minTimeCarInPark.toTime}`
+              : "-",
+            false
+          );
+
+          doc.moveDown();
           doc.moveDown();
         }
 
@@ -201,23 +218,6 @@ async function generatePDFReport(
     }
 
     addTableWithHeaders(header, rows);
-
-    // Add line horizontally
-    doc.moveTo(50, 525).lineTo(550, 525).stroke();
-    doc.font("Helvetica-Bold");
-    doc.text(totalVolume, 165, 535);
-    doc.text(totalAllALSHours + " Hrs", 353, 535);
-    doc.text(totalVolume, 447, 535);
-
-    doc.moveDown();
-    doc.moveDown();
-
-    doc.font("Helvetica-Bold").text("Grand Total of Volume: ");
-    doc.font("Helvetica").text(totalVolume);
-
-    doc.moveDown();
-    doc.font("Helvetica-Bold").text("Average ALS: ");
-    doc.font("Helvetica").text(averageALS + " Hrs");
 
     doc.end();
 

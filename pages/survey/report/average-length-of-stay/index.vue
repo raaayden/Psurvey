@@ -1,4 +1,6 @@
 <script setup>
+import { DateTime } from "luxon";
+
 definePageMeta({
   title: "Average Length of Stay",
 });
@@ -130,6 +132,18 @@ const submitFilter = async () => {
   navigateTo({ query });
 };
 
+const computedSurveyDateFrom = computed(() => {
+  return filter.value.surveyDateFrom
+    ? DateTime.fromISO(filter.value.surveyDateFrom).toFormat("yyyy-MM-dd")
+    : "";
+});
+
+const computedSurveyDateTo = computed(() => {
+  return filter.value.surveyDateTo
+    ? DateTime.fromISO(filter.value.surveyDateTo).toFormat("yyyy-MM-dd")
+    : "";
+});
+
 const exportReport = async () => {
   try {
     const { data } = await useFetch(
@@ -254,13 +268,19 @@ const exportReport = async () => {
             v-model="filter.surveyDateFrom"
             type="datetime-local"
             label="From"
-            :validation="`date_before:${filter.surveyDateTo}`"
+            :validation="`date_before:${filter.surveyDateTo}|date_after:${computedSurveyDateFrom}`"
+            :validation-messages="{
+              date_after: `Must be the same date as To date ${computedSurveyDateFrom}`,
+            }"
           />
           <FormKit
             v-model="filter.surveyDateTo"
             type="datetime-local"
             label="To"
-            :validation="`date_after:${filter.surveyDateFrom}`"
+            :validation="`date_after:${filter.surveyDateFrom}|date_before:${computedSurveyDateTo}`"
+            :validation-messages="{
+              date_before: `Must be the same date as From date ${computedSurveyDateTo}`,
+            }"
           />
         </div>
 
