@@ -39,16 +39,6 @@ if (projectList.value.statusCode == 200) {
   });
 }
 
-const optionDate = ref([]);
-
-const { data: dateList } = await useFetch("/api/survey/list/date", {
-  method: "GET",
-});
-
-if (dateList.value.statusCode == 200) {
-  optionDate.value = dateList.value.data;
-}
-
 const { data: surveyList } = await useFetch("/api/survey/list/get", {
   method: "GET",
   params: {
@@ -61,6 +51,39 @@ const { data: surveyList } = await useFetch("/api/survey/list/get", {
 if (surveyList.value.statusCode == 200) {
   fileData.value = surveyList.value.data;
 }
+
+const optionDate = ref([]);
+
+onMounted(async () => {
+  if (filter.value.projectID) {
+    await assignedDateOption(filter.value.projectID);
+  }
+});
+
+watch(
+  () => filter.value.projectID,
+  async (value) => {
+    if (value) {
+      await assignedDateOption(value);
+    }
+  },
+  {
+    deep: true,
+  }
+);
+
+const assignedDateOption = async (projectId) => {
+  const { data: dateList } = await useFetch("/api/survey/list/date", {
+    method: "GET",
+    params: {
+      projectID: projectId,
+    },
+  });
+
+  if (dateList.value.statusCode == 200) {
+    optionDate.value = dateList.value.data;
+  }
+};
 
 const submitFilter = () => {
   const query = {
@@ -91,9 +114,10 @@ const submitFilter = () => {
 
           <FormKit
             v-model="filter.surveyDate"
+            :options="optionDate"
             type="select"
             label="Survey Date"
-            :options="optionDate"
+            help="Select Project Name first to get the available dates."
           />
 
           <FormKit

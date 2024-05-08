@@ -160,6 +160,11 @@ const uploadFile = async () => {
             />
             {{ pendingUpload ? "Uploading..." : "Save Data" }}
           </rs-button>
+
+          <div v-if="pendingUpload" class="mt-2 text-danger">
+            Please wait while we process your upload. Larger datasets may
+            require additional time for processing.
+          </div>
         </FormKit>
       </template>
     </rs-card>

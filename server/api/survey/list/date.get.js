@@ -2,12 +2,22 @@ import { DateTime } from "luxon";
 
 export default defineEventHandler(async (event) => {
   try {
+    const { projectID } = getQuery(event);
+
+    if (!projectID) {
+      return {
+        statusCode: 400,
+        message: "Project ID is required",
+      };
+    }
+
     const surveyList = await prisma.survey_list.findMany({
       select: {
         vehicle_timein: true,
         vehicle_timeout: true,
       },
       where: {
+        project_id: parseInt(projectID),
         vehicle_timein: {
           not: null,
         },

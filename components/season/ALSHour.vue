@@ -31,6 +31,77 @@ const optionsProjectList = ref(
     };
   })
 );
+
+const optionDate = ref([]);
+
+onMounted(async () => {
+  if (form.value.projectID) {
+    await assignedDateOption(form.value.projectID);
+  }
+});
+
+watch(
+  () => form.value.projectID,
+  async (value) => {
+    if (value) {
+      await assignedDateOption(value);
+    }
+  },
+  {
+    deep: true,
+  }
+);
+
+const assignedDateOption = async (projectId) => {
+  const { data: dateList } = await useFetch("/api/survey/list/date", {
+    method: "GET",
+    params: {
+      projectID: projectId,
+    },
+  });
+
+  if (dateList.value.statusCode == 200) {
+    optionDate.value = dateList.value.data;
+  }
+};
+
+const vehicleSeasonList = ref([]);
+
+const previewFilteredData = async () => {
+  try {
+    const { data } = await useFetch(
+      "/api/survey/parking-season/add-vehicle/preview-data",
+      {
+        method: "GET",
+        params: {
+          projectID: form.value.projectID,
+          surveyDate: form.value.surveyDate,
+          ALSHour: form.value.ALSHour,
+        },
+      }
+    );
+
+    if (data.value.statusCode == 200) {
+      $swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Data has been filtered successfully",
+      });
+
+      vehicleSeasonList.value = data.value.data;
+    } else {
+      $swal.fire({
+        icon: "error",
+        title: "Error",
+        text: data.value.message,
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    return false;
+  }
+};
+
 const addSeasonParking = async () => {
   try {
     const { data } = await useFetch("/api/survey/parking-season/vehicle/add", {
@@ -66,7 +137,7 @@ const addSeasonParking = async () => {
       <div class="flex flex-wrap justify-between gap-4 mb-5">
         <h4 class="font-medium">Form</h4>
       </div>
-      <FormKit type="form" :actions="false" @submit="addSeasonParking">
+      <FormKit type="form" :actions="false" @submit="previewFilteredData">
         <FormKit
           v-model="form.projectID"
           type="select"
@@ -79,31 +150,55 @@ const addSeasonParking = async () => {
 
         <FormKit
           v-model="form.surveyDate"
-          type="date"
-          name="surveyDate"
+          :options="optionDate"
+          type="select"
           label="Survey Date"
-          validation="required"
+          help="Select Project Name first to get the available dates."
         />
 
         <FormKit
           v-model="form.ALSHour"
           type="select"
           name="ALSHour"
-          label="ALS Hour"
+          label="Min ALS Hour"
           :options="optionsALSHour"
-          validation="required"
         />
 
         <div class="flex flex-wrap justify-start">
-          <rs-button
-            class="mt-5"
-            btn-type="submit"
-            :disabled="!form.projectName"
-          >
-            Get Filter Data
+          <rs-button class="mt-5" btn-type="submit" :disabled="!form.projectID">
+            Preview Filtered Data
           </rs-button>
         </div>
       </FormKit>
+    </rs-card>
+
+    <rs-card v-if="vehicleSeasonList && vehicleSeasonList.length > 0">
+      <div class="flex justify-between p-5">
+        <h4 class="font-medium">Preview Data CSV</h4>
+
+        <div class="flex gap-3">
+          <rs-button @click="addSeasonParking">
+            <Icon name="ph:database-duotone" class="mr-1" />
+            Save All Vehicle Parking Season
+          </rs-button>
+        </div>
+      </div>
+      <div class="pb-3 py-3">
+        <rs-table
+          :data="vehicleSeasonList"
+          :key="vehicleSeasonList"
+          :options-advanced="{
+            sortable: true,
+            responsive: true,
+            filterable: false,
+          }"
+          :sort="{
+            column: 'carPlateNumber',
+            direction: 'asc',
+          }"
+          advanced
+        />
+      </div>
     </rs-card>
   </div>
 </template>

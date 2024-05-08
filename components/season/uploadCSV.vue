@@ -185,6 +185,7 @@ const addSeasonParking = async () => {
       <div class="pb-3 py-3">
         <rs-table
           :data="vehicleSeasonList"
+          :key="vehicleSeasonList"
           :options-advanced="{
             sortable: true,
             responsive: true,
