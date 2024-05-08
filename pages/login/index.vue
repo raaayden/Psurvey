@@ -54,7 +54,7 @@ const login = async () => {
       // console.log(userStore.refreshToken);
       // console.log(userStore.isAuth);
 
-      navigateTo("/dashboard");
+      navigateTo("/survey/upload-csv");
     } else {
       $swal.fire({
         title: "Error!",
@@ -84,7 +84,7 @@ const login = async () => {
         </div>
         <h3 class="mb-4">Login</h3>
         <p class="text-slate-500 mb-6">
-          Welcome to Mawar. Please login to continue.
+          Welcome to First Parking. Please login to continue.
         </p>
         <div class="grid grid-cols-2">
           <FormKit

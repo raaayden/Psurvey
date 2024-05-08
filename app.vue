@@ -1,6 +1,6 @@
 <script setup>
 useHead({
-  title: "Mawar | Innovative solutions for captivating content",
+  title: "First Parking | Innovative solutions for captivating content",
   description: "Home page",
   htmlAttrs: {
     lang: "en",

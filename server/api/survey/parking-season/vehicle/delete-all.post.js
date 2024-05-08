@@ -1,17 +1,16 @@
+import { DateTime } from "luxon";
+
 export default defineEventHandler(async (event) => {
   try {
-    const updateVehicleSeasonParking = await prisma.parking_season.updateMany({
-      where: {
-        season_status: "ACTIVE",
-      },
+    const deleteAllParkingSeason = await prisma.parking_season.updateMany({
       data: {
-        season_status: "INACTIVE",
+        season_status: "DELETED",
+        updated_by: "SYSTEM",
+        updated_at: DateTime.now(),
       },
     });
 
-    console.log("updateVehicleSeasonParking: ", updateVehicleSeasonParking);
-
-    if (!updateVehicleSeasonParking) {
+    if (!deleteAllParkingSeason) {
       return {
         statusCode: 500,
         message: "Internal Server Error",
@@ -20,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
     return {
       statusCode: 200,
-      message: "Success update Parking Season Rule",
+      message: "Success delete all Parking Season Rule",
     };
   } catch (error) {
     console.log("error: ", error);

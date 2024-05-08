@@ -27,7 +27,7 @@ const toBase64 = (file) =>
   });
 
 async function onDrop(fileList, fileError, event) {
-  if (fileError.length == 0) {
+  if (fileError.length == 0 && files.value.length < maxFiles) {
     err.value = false;
     errmsg.value = "";
     for (let i = 0; i < fileList.length; i++) {
@@ -36,8 +36,26 @@ async function onDrop(fileList, fileError, event) {
       files.value.push([fileList[i]]);
     }
   } else {
-    err.value = true;
-    errmsg.value = fileError[0].errors[0].message;
+    if (files.value?.length == maxFiles) {
+      err.value = true;
+      errmsg.value = `Maximum files allowed is ${maxFiles}`;
+    } else {
+      if (fileError[0].errors[0].code == "file-too-large") {
+        err.value = true;
+        let convertedSize = maxSize / 100000;
+        errmsg.value = `File size exceeds ${convertedSize}mb`;
+      } else if (fileError[0].errors[0].code == "file-too-small") {
+        err.value = true;
+        let convertedSize = minSize / 100000;
+        errmsg.value = `File size is less than ${convertedSize}mb`;
+      } else if (fileError[0].errors[0].code == "too-many-files") {
+        err.value = true;
+        errmsg.value = `Maximum files allowed is ${maxFiles}`;
+      } else if (fileError[0].errors[0].code == "file-invalid-type") {
+        err.value = true;
+        errmsg.value = `Invalid file type. Only ${accept} files are allowed`;
+      }
+    }
   }
 
   updateNodeValue();
@@ -46,6 +64,7 @@ async function onDrop(fileList, fileError, event) {
 async function removeFiles(index) {
   fileBase64.value.splice(index, 1);
   files.value.splice(index, 1);
+
   updateNodeValue();
 }
 
@@ -70,12 +89,17 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
   <div :class="context.classes.dropzone">
     <div v-bind="getRootProps()" class="cursor-pointer">
       <input v-bind="getInputProps()" />
-      <div class="flex items-center justify-center h-36">
+      <div
+        class="flex items-center justify-center h-36"
+        :class="{
+          'text-red-500': err,
+        }"
+      >
         <div>
           <Icon
             class="!block m-auto mb-3"
             size="30px"
-            name="ic:outline-upload-file"
+            name="ph:file-arrow-up"
           />
           <p class="text-center" v-if="isDragActive">Drop the files here ...</p>
           <p v-else>Drop files or click here to upload files</p>
@@ -84,12 +108,12 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
     </div>
     <div
       id="fileList"
-      class="grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
+      class="grid sm:grid-cols-2 md:grid-cols-4 gap-4"
       v-auto-animate
     >
       <div
         v-for="(file, index) in fileBase64"
-        class="relative overflow-hidden w-full h-20 md:h-36 rounded-lg border-2 border-[rgb(var(--border-color))]"
+        class="relative overflow-hidden w-full h-20 md:h-36 rounded-lg border-2 border-gray-300 dark:border-gray-600"
         v-auto-animate
       >
         <img
@@ -110,13 +134,15 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
         <Icon
           name="ic:round-close"
           @click="removeFiles(index)"
-          class="cursor-pointer absolute top-1 right-1 text-[rgb(var(--text-color))] bg-[rgb(var(--bg-2))] p-1 rounded-full"
+          class="cursor-pointer absolute top-1 right-1 text-slate-600 hover:bg-slate-200 bg-white dark:bg-slate-800 dark:text-gray-300 dark:hover:dark:bg-slate-600 p-1 rounded-full"
           size="18"
         />
         <div
-          class="absolute bottom-1 right-1 bg-[rgb(var(--bg-2))] px-2 rounded-lg"
+          class="absolute bottom-1 right-1 bg-white dark:bg-slate-800 px-2 rounded-lg"
         >
-          <span class="font-semibold text-xs text-[rgb(var(--text-color))]">
+          <span
+            class="font-semibold text-xs text-slate-600 dark:text-gray-300 line-clamp-1"
+          >
             {{ file.data.path }}
           </span>
         </div>
@@ -128,7 +154,7 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
       aria-live="polite"
     >
       <li
-        class="formkit-message text-red-500 mb-1 text-xs formkit-invalid:text-red-500 dark:formkit-invalid:text-danger"
+        class="formkit-message text-red-500 mb-3 text-xs formkit-invalid:text-red-500 dark:formkit-invalid:text-danger"
         id="input_9-rule_required"
         data-message-type="validation"
       >

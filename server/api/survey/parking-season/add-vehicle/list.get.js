@@ -1,5 +1,7 @@
 export default defineEventHandler(async (event) => {
   try {
+    const { projectID } = getQuery(event);
+
     const getAvailableVehicle = await prisma.vehicle.findMany({
       select: {
         vehicle_id: true,
@@ -17,6 +19,7 @@ export default defineEventHandler(async (event) => {
     // Check if the vehicle already exist in season parking
     const getVehicleSeasonParking = await prisma.parking_season.findMany({
       where: {
+        project_id: parseInt(projectID),
         vehicle_id: {
           in: getAvailableVehicle.map((vehicle) => vehicle.vehicle_id),
         },

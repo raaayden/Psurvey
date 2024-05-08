@@ -13,12 +13,75 @@ export default defineEventHandler(async (event) => {
       };
     }
 
-    const file = postData[0].data;
-    const csvData = parse(file, { columns: true });
+    let projectName = null;
+    let projectID = null;
+    let fileList = [];
 
-    console.log("csvData: ", csvData);
+    // Loop thru postData
+    for (let i = 0; i < postData.length; i++) {
+      const form = postData[i];
 
-    if (!csvData || !csvData.length) {
+      if (form.name === "project_name") {
+        projectName = Buffer.from(form.data).toString("utf-8");
+      } else if (form.name === "project_id") {
+        projectID = Buffer.from(form.data).toString("utf-8");
+      } else {
+        fileList.push(form);
+      }
+    }
+
+    if (!projectName || !fileList.length) {
+      return {
+        statusCode: 400,
+        message: "Bad Request",
+      };
+    }
+
+    let statusCode = 200; // Assume success initially
+    let errorMessage = "";
+    let csvData = [];
+
+    fileList.forEach(async (file, index) => {
+      let parsedFile = parse(file.data, { columns: true });
+      console.log("parsedFile: ", parsedFile);
+
+      if (!parsedFile || !parsedFile.length) {
+        statusCode = 400;
+        errorMessage =
+          "There is no data in the CSV file. Please check the file and try again.";
+        return;
+      }
+
+      // Check if the CSV file has the required columns or not. id, car_plate_number, project, time_in, time_out, entry_exit_code, parker_type, surveyor
+      const missingColumns = validateRequiredColumns(parsedFile);
+      if (missingColumns) {
+        statusCode = missingColumns.statusCode;
+        errorMessage = missingColumns.message;
+        return;
+      }
+
+      // Check if the CSV file has any duplicate IDs
+      const duplicateIds = validateDuplicateIds(parsedFile);
+      if (duplicateIds) {
+        statusCode = duplicateIds.statusCode;
+        errorMessage = duplicateIds.message;
+        return;
+      }
+
+      const checkCarPlateNumberInteger = parsedFile.filter((data) => {
+        return isNaN(data.car_plate_number);
+      });
+
+      if (checkCarPlateNumberInteger.length) {
+        statusCode = 400;
+        errorMessage = "Car plate number must be a number";
+        return;
+      }
+
+      csvData.push(...parsedFile);
+    });
+
+    if (csvData.length === 0) {
       return {
         statusCode: 400,
         message:
@@ -26,31 +89,9 @@ export default defineEventHandler(async (event) => {
       };
     }
 
-    // Check if the CSV file has the required columns or not. id, car_plate_number, project, time_in, time_out, entry_exit_code, parker_type, surveyor
-    const missingColumns = validateRequiredColumns(csvData);
-    if (missingColumns) {
-      return missingColumns;
-    }
-
-    // Check if the CSV file has any duplicate IDs
-    const duplicateIds = validateDuplicateIds(csvData);
-    if (duplicateIds) {
-      return duplicateIds;
-    }
-
-    const checkCarPlateNumberInteger = csvData.filter((data) => {
-      return isNaN(data.car_plate_number);
-    });
-
-    if (checkCarPlateNumberInteger.length) {
-      return {
-        statusCode: 400,
-        message: "Car plate number must be a number",
-      };
-    }
-
     for (let i = 0; i < csvData.length; i++) {
       const survey = csvData[i];
+      console.log("survey: ", survey);
 
       // Check if the survey_id already exists in the database
       const surveyExist = await prisma.survey_list.findUnique({
@@ -68,29 +109,20 @@ export default defineEventHandler(async (event) => {
             vehicle_timeout: DateTime.fromISO(
               survey.time_out.replace(" ", "T")
             ),
-            project_name: survey.project,
+            project_name: projectName,
             project_eecode: survey.entry_exit_code,
             project_parker_type: survey.parker_type,
             project_surveyor_name: survey.surveyor,
             data_status: "UPLOADED",
             created_by: "SYSTEM",
             created_at: DateTime.now(),
-            file: {
-              connectOrCreate: {
-                where: { file_name: postData[0].filename },
-                create: {
-                  file_name: postData[0].filename,
-                  file_type: postData[0].type,
-                  created_by: "SYSTEM",
-                  created_at: DateTime.now(),
-                },
-              },
-            },
             project: {
               connectOrCreate: {
-                where: { project_name: survey.project },
+                where: {
+                  project_name: projectName,
+                },
                 create: {
-                  project_name: survey.project,
+                  project_name: projectName,
                   created_by: "SYSTEM",
                   created_at: DateTime.now(),
                 },
@@ -113,26 +145,29 @@ export default defineEventHandler(async (event) => {
         });
 
         if (!insertSurvey) {
-          return {
-            statusCode: 500,
-            message: "Internal Server Error",
-          };
+          statusCode = 500;
+          errorMessage = "Failed to insert survey data into the database";
+          return;
         }
       }
     }
 
-    // Select file_id based on the file_name
-    const fileData = await prisma.file.findFirst({
-      where: {
-        file_name: postData[0].filename,
+    // Select the last file in the fileList
+    const getProject = await prisma.project.findFirst({
+      select: {
+        project_id: true,
+      },
+      orderBy: {
+        created_at: "desc",
       },
     });
 
     return {
-      statusCode: 200,
-      message: "Data has been saved to the database successfully.",
+      statusCode: statusCode,
+      message:
+        errorMessage || "Data has been successfully uploaded to the database",
       data: {
-        file_id: fileData.file_id,
+        projectID: getProject.project_id,
       },
     };
   } catch (error) {

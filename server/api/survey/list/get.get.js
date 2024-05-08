@@ -2,9 +2,9 @@ import { DateTime } from "luxon";
 
 export default defineEventHandler(async (event) => {
   try {
-    const { id } = getQuery(event);
+    const { projectID, surveyDate, entryExitCode } = getQuery(event);
 
-    if (!id) {
+    if (!projectID) {
       return {
         statusCode: 400,
         message: "Invalid request",
@@ -13,7 +13,26 @@ export default defineEventHandler(async (event) => {
 
     const getSurveyList = await prisma.survey_list.findMany({
       where: {
-        file_id: parseInt(id),
+        project_id: parseInt(projectID),
+        project_eecode: entryExitCode ? entryExitCode : undefined,
+        ...(surveyDate
+          ? {
+              OR: [
+                {
+                  vehicle_timein: {
+                    gte: DateTime.fromISO(surveyDate).startOf("day"),
+                    lte: DateTime.fromISO(surveyDate).endOf("day"),
+                  },
+                },
+                {
+                  vehicle_timeout: {
+                    gte: DateTime.fromISO(surveyDate).startOf("day"),
+                    lte: DateTime.fromISO(surveyDate).endOf("day"),
+                  },
+                },
+              ],
+            }
+          : {}),
       },
       select: {
         vehicle: {
@@ -30,6 +49,8 @@ export default defineEventHandler(async (event) => {
       },
     });
 
+    console.log("getSurveyList: ", getSurveyList);
+
     if (!getSurveyList || getSurveyList.length === 0) {
       return {
         statusCode: 404,
@@ -43,12 +64,12 @@ export default defineEventHandler(async (event) => {
         project: survey.project_name,
         timeIn: survey.vehicle_timein
           ? DateTime.fromJSDate(survey.vehicle_timein).toFormat(
-              "yyyy-MM-dd hh:mm:ss"
+              "dd/MM/yyyy hh:mm:ss"
             )
           : null,
         timeOut: survey.vehicle_timeout
           ? DateTime.fromJSDate(survey.vehicle_timeout).toFormat(
-              "yyyy-MM-dd hh:mm:ss"
+              "dd/MM/yyyy hh:mm:ss"
             )
           : null,
         entryExitCode: survey.project_eecode,

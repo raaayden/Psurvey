@@ -1,47 +1,54 @@
 export default defineEventHandler(async (event) => {
   try {
+    const { projectID } = getQuery(event);
+
     const getParkingList = await prisma.parking_season.findMany({
+      where: {
+        project_id: projectID ? parseInt(projectID) : undefined,
+        season_status: {
+          not: "DELETED",
+        },
+      },
       select: {
         season_id: true,
+        project: {
+          select: {
+            project_name: true,
+          },
+        },
         vehicle: {
           select: {
             vehicle_plate_number: true,
           },
         },
         season_status: true,
-        created_at: true,
       },
     });
 
     if (!getParkingList || getParkingList.length === 0) {
       return {
         statusCode: 404,
-        message: "Parking Season not found",
+        message: "Parking Season Vehicle not found",
       };
     }
 
     const remapParkingList = getParkingList.map((parking) => {
       return {
-        carPlateNumber: parking.vehicle.vehicle_plate_number,
-        status: {
-          status: parking.season_status,
-          id: parking.season_id,
+        projectName: parking?.project?.project_name,
+        carPlateNumber: parking?.vehicle?.vehicle_plate_number,
+        action: {
+          id: parking?.season_id,
+          status: parking?.season_status,
         },
-        createdAt: parking.created_at,
       };
     });
 
-    // Check whether all the parking season is inactive
-    const isAllInactive = remapParkingList.every(
-      (parking) => parking.status.status === "INACTIVE"
-    );
-
     return {
       statusCode: 200,
-      message: "Success get Parking Season List",
+      message: "Success get Parking Season Vehicle List",
       data: {
         parkingSeasonList: remapParkingList,
-        isAllInactive,
+        isAllInactive: false,
       },
     };
   } catch (error) {

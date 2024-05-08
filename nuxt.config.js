@@ -27,14 +27,14 @@ export default defineNuxtConfig({
     pageTransition: { name: "page", mode: "out-in" },
   },
   head: {
-    title: "Mawar",
+    title: "First Parking",
     meta: [
       { charset: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       {
         hid: "description",
         name: "description",
-        content: "Mawar",
+        content: "First Parking",
       },
     ],
     link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }],
@@ -64,8 +64,8 @@ export default defineNuxtConfig({
       type: "module",
     },
     manifest: {
-      name: "Mawar",
-      short_name: "Mawar",
+      name: "First Parking",
+      short_name: "First Parking",
       theme_color: "#FF3E65",
       background_color: "#FAFAFA",
       display: "standalone",

@@ -4,26 +4,6 @@ export default [
     description: "",
     child: [
       {
-        title: "Dashboard",
-        path: "/dashboard",
-        icon: "ic:outline-dashboard",
-        child: [],
-        meta: {},
-      },
-    ],
-  },
-  {
-    header: "Parking Survey",
-    description: "Manage Parking",
-    child: [
-      {
-        title: "Prototype",
-        path: "/psurvey/prototype",
-        icon: "ph:app-window-duotone",
-        child: [],
-        meta: {},
-      },
-      {
         title: "Upload CSV",
         path: "/survey/upload-csv",
         icon: "ph:file-csv",
@@ -35,8 +15,17 @@ export default [
       },
       {
         title: "Parking Season",
-        path: "/survey/parking-season",
         icon: "mingcute:parking-line",
+        child: [
+          {
+            title: "List",
+            path: "/survey/parking-season",
+          },
+          {
+            title: "Add Vehicle to Parking Season",
+            path: "/survey/parking-season/add-vehicle",
+          },
+        ],
       },
       {
         title: "Report",
