@@ -2,9 +2,9 @@ import { DateTime } from "luxon";
 
 export default defineEventHandler(async (event) => {
   try {
-    const { projectID } = getQuery(event);
+    const { projectID, projectName, type } = getQuery(event);
 
-    if (!projectID) {
+    if (!projectID && !projectName) {
       return {
         statusCode: 400,
         message: "Project ID is required",
@@ -17,7 +17,8 @@ export default defineEventHandler(async (event) => {
         vehicle_timeout: true,
       },
       where: {
-        project_id: parseInt(projectID),
+        project_id: projectID ? parseInt(projectID) : undefined,
+        project_name: projectName ? projectName : undefined,
         vehicle_timein: {
           not: null,
         },
@@ -55,11 +56,19 @@ export default defineEventHandler(async (event) => {
       };
     });
 
-    // Add null option
-    remapToOptions.unshift({
-      value: null,
-      label: "All Dates",
-    });
+    if (type == "select") {
+      // Add null option
+      remapToOptions.unshift({
+        value: null,
+        label: "Select Date",
+      });
+    } else {
+      // Add null option
+      remapToOptions.unshift({
+        value: null,
+        label: "All Dates",
+      });
+    }
 
     return {
       statusCode: 200,

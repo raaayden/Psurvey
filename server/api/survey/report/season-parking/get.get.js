@@ -33,10 +33,10 @@ export default defineEventHandler(async (event) => {
     const getSurveyList = await prisma.survey_list.findMany({
       where: {
         project_id: project.project_id,
-        vehicle_timein: {
-          gte: date ? DateTime.fromISO(date) : undefined,
-          lte: date ? DateTime.fromISO(date).endOf("day") : undefined,
-        },
+        // vehicle_timein: {
+        //   gte: date ? DateTime.fromISO(date) : undefined,
+        //   lte: date ? DateTime.fromISO(date).endOf("day") : undefined,
+        // },
       },
       select: {
         survey_list_id: true,
@@ -46,6 +46,11 @@ export default defineEventHandler(async (event) => {
           },
         },
         vehicle_timein: true,
+      },
+      orderBy: {
+        vehicle: {
+          vehicle_plate_number: "asc",
+        },
       },
     });
 
@@ -57,6 +62,7 @@ export default defineEventHandler(async (event) => {
 
       const getSeasonParkingPlate = await prisma.parking_season.findFirst({
         where: {
+          season_status: "ACTIVE",
           vehicle: {
             vehicle_plate_number: survey.vehicle.vehicle_plate_number,
           },
@@ -94,6 +100,7 @@ export default defineEventHandler(async (event) => {
         dateOfReport,
         date,
         seasonParkingList: data,
+        totalVehicle: data.length || 0,
       },
     };
   } catch (error) {

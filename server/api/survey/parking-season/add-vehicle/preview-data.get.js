@@ -82,7 +82,7 @@ export default defineEventHandler(async (event) => {
       if (diff == "Invalid Duration") return null;
 
       // If ALSHour is provided, only include survey data if the length of stay is greater than ALSHour
-      if (ALSHour && diff > ALSHour) {
+      if (ALSHour && diff >= ALSHour) {
         return {
           projectName: survey.project.project_name,
           carPlateNumber: survey.vehicle.vehicle_plate_number,

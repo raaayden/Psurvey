@@ -8,8 +8,9 @@ const { $swal } = useNuxtApp();
 const qProjectName = useRoute().query.project_name;
 const qDataType = useRoute().query.data_type;
 const qParkerType = useRoute().query.parker_type;
-const qSurveyDateFrom = useRoute().query.survey_date_from;
-const qSurveyDateTo = useRoute().query.survey_date_to;
+const qSurveyDate = useRoute().query.survey_date;
+const qSurveyTimeFrom = useRoute().query.survey_time_from;
+const qSurveyTimeTo = useRoute().query.survey_time_to;
 
 const fileData = ref(null);
 
@@ -17,8 +18,9 @@ const filter = ref({
   projectName: qProjectName || "",
   dataType: qDataType || "",
   parkerType: qParkerType || "",
-  surveyDateFrom: qSurveyDateFrom || "",
-  surveyDateTo: qSurveyDateTo || "",
+  surveyDate: qSurveyDate || "",
+  surveyTimeFrom: qSurveyTimeFrom || "",
+  surveyTimeTo: qSurveyTimeTo || "",
 });
 
 const projectOptions = ref(null);
@@ -50,8 +52,9 @@ const { data: matchingReport } = await useFetch(
       projectName: filter.value.projectName,
       dataType: filter.value.dataType,
       parkerType: filter.value.parkerType,
-      surveyDateFrom: filter.value.surveyDateFrom,
-      surveyDateTo: filter.value.surveyDateTo,
+      surveyDate: filter.value.surveyDate,
+      surveyTimeFrom: filter.value.surveyTimeFrom,
+      surveyTimeTo: filter.value.surveyTimeTo,
     },
   }
 );
@@ -59,15 +62,51 @@ const { data: matchingReport } = await useFetch(
 if (matchingReport.value.statusCode == 200) {
   reportData.value = matchingReport.value.data;
   showReport.value = true;
+} else {
+  reportData.value = [];
 }
+
+const optionDate = ref([]);
+
+onMounted(async () => {
+  if (filter.value.projectName) {
+    await assignedDateOption(filter.value.projectName);
+  }
+});
+
+watch(
+  () => filter.value.projectName,
+  async (value) => {
+    if (value) {
+      await assignedDateOption(value);
+    }
+  },
+  {
+    deep: true,
+  }
+);
+
+const assignedDateOption = async (name) => {
+  const { data: dateList } = await useFetch("/api/survey/list/date", {
+    method: "GET",
+    params: {
+      projectName: name,
+    },
+  });
+
+  if (dateList.value.statusCode == 200) {
+    optionDate.value = dateList.value.data;
+  }
+};
 
 const submitFilter = async () => {
   const query = {
     project_name: filter.value.projectName,
     data_type: filter.value.dataType,
     parker_type: filter.value.parkerType,
-    survey_date_from: filter.value.surveyDateFrom,
-    survey_date_to: filter.value.surveyDateTo,
+    survey_date: filter.value.surveyDate,
+    survey_time_from: filter.value.surveyTimeFrom,
+    survey_time_to: filter.value.surveyTimeTo,
   };
 
   navigateTo({ query });
@@ -82,8 +121,10 @@ const exportReport = async () => {
         body: {
           projectName: reportData.value.projectName,
           dateOfReport: reportData.value.dateOfReport,
-          surveyDateFrom: reportData.value.surveyDateFrom,
-          surveyDateTo: reportData.value.surveyDateTo,
+          surveyDate: reportData.value.surveyDate,
+          surveyTimeFrom: reportData.value.surveyTimeFrom,
+          surveyTimeTo: reportData.value.surveyTimeTo,
+          parkerType: reportData.value.parkerType,
           totalNumberOfRecord: reportData.value.totalNumberOfRecord,
           totalRecord: reportData.value.totalRecord,
           entryRecord: reportData.value.entryRecord,
@@ -104,7 +145,7 @@ const exportReport = async () => {
 
       const linkSource = `data:application/pdf;base64,${data.value.data}`;
       const downloadLink = document.createElement("a");
-      const fileName = "report.pdf";
+      const fileName = "traffic-matching.pdf";
 
       if (!downloadLink) return;
 
@@ -140,30 +181,13 @@ const exportReport = async () => {
           validation="required"
         />
 
-        <!-- <FormKit
-          v-model="filter.dataType"
-          type="radio"
-          label="Data Type"
-          :classes="{
-            fieldset: 'border-0 !p-0',
-            legend: '!font-semibold !text-sm mb-0',
-            options: '!flex !flex-row gap-4 mt-3',
-          }"
-          :options="[
-            {
-              label: 'All',
-              value: '',
-            },
-            {
-              label: 'Raw',
-              value: 'RAW',
-            },
-            {
-              label: 'Adjusted',
-              value: 'ADJUSTED',
-            },
-          ]"
-        /> -->
+        <FormKit
+          v-model="filter.surveyDate"
+          :options="optionDate"
+          type="select"
+          label="Survey Date"
+          help="Select Project Name first to get the available dates."
+        />
 
         <FormKit
           v-model="filter.parkerType"
@@ -193,18 +217,8 @@ const exportReport = async () => {
           Time of Survey
         </label>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <FormKit
-            v-model="filter.surveyDateFrom"
-            type="datetime-local"
-            label="From"
-            :validation="`date_before:${filter.surveyDateTo}`"
-          />
-          <FormKit
-            v-model="filter.surveyDateTo"
-            type="datetime-local"
-            label="To"
-            :validation="`date_after:${filter.surveyDateFrom}`"
-          />
+          <FormKit v-model="filter.surveyTimeFrom" type="time" label="From" />
+          <FormKit v-model="filter.surveyTimeTo" type="time" label="To" />
         </div>
 
         <div class="flex items-center mt-2">
@@ -220,7 +234,7 @@ const exportReport = async () => {
       </FormKit>
     </rs-card>
 
-    <rs-card v-if="reportData">
+    <rs-card v-if="reportData && reportData.projectName">
       <template #header>
         <div class="flex justify-between">
           <span>Report</span>
@@ -247,22 +261,20 @@ const exportReport = async () => {
               <span class="col-span-4">{{ reportData.dateOfReport }}</span>
               <h6>Project Name:</h6>
               <span class="col-span-4">{{ reportData.projectName }}</span>
+              <h6>Survey Date:</h6>
+              <span class="col-span-4">{{ reportData.surveyDate }}</span>
+              <h6>Parker Type:</h6>
+              <span class="col-span-4">{{ reportData.parkerType }}</span>
               <h6>Time of Survey:</h6>
               <h6>From</h6>
               <span>
                 {{
-                  reportData.surveyDateFrom
-                    ? new Date(reportData.surveyDateFrom).toLocaleString()
-                    : "-"
+                  reportData.surveyTimeFrom ? reportData.surveyTimeFrom : "-"
                 }}
               </span>
               <h6>To</h6>
               <span>
-                {{
-                  reportData.surveyDateTo
-                    ? new Date(reportData.surveyDateTo).toLocaleString()
-                    : "-"
-                }}
+                {{ reportData.surveyTimeTo ? reportData.surveyTimeTo : "-" }}
               </span>
             </div>
             <div class="grid grid-cols-4 gap-3 mt-8">
@@ -304,6 +316,20 @@ const exportReport = async () => {
             </div>
           </div>
         </div>
+      </template>
+    </rs-card>
+    <rs-card v-else-if="reportData.length == 0">
+      <template #header>
+        <div class="flex justify-between">
+          <span>Report</span>
+        </div>
+      </template>
+      <template #body>
+        <span
+          class="text-sm text-gray-500 flex justify-center items-center mt-5"
+        >
+          - No report found for the selected filter -
+        </span>
       </template>
     </rs-card>
   </div>

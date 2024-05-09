@@ -72,6 +72,7 @@ const exportReport = async () => {
           dateOfReport: reportData.value.dateOfReport,
           date: filter.value.date,
           seasonParkingList: reportData.value.seasonParkingList,
+          totalVehicle: reportData.value.totalVehicle,
         },
       }
     );
@@ -121,7 +122,7 @@ const exportReport = async () => {
           validation="required"
         />
 
-        <FormKit v-model="filter.date" type="date" label="Date" />
+        <!-- <FormKit v-model="filter.date" type="date" label="Date" /> -->
 
         <div class="flex items-center mt-2">
           <rs-button btn-type="submit"> Filter Report </rs-button>
@@ -155,7 +156,7 @@ const exportReport = async () => {
           <div class="border py-8 px-12 w-[794px] h-[1123px] bg-white">
             <div class="mt-4 mb-8 flex flex-col items-center justify-center">
               <h3 class="font-normal">First Parking</h3>
-              <h3 class="underline">SEASON PARKING</h3>
+              <h3 class="underline">SEASON PARKING REPORT</h3>
               <h3>Page 1 of 1</h3>
             </div>
             <div class="grid grid-cols-5 gap-3 mb-8">
@@ -163,12 +164,14 @@ const exportReport = async () => {
               <span class="col-span-4">{{ reportData.dateOfReport }}</span>
               <h6>Project Name:</h6>
               <span class="col-span-4">{{ reportData.projectName }}</span>
-              <h6>Date:</h6>
+              <!-- <h6>Date:</h6>
               <span class="col-span-4">{{
                 reportData.date
                   ? new Date(reportData.date).toLocaleDateString()
                   : "-"
-              }}</span>
+              }}</span> -->
+              <h6>Total Vehicle:</h6>
+              <span class="col-span-4">{{ reportData.totalVehicle }}</span>
             </div>
 
             <rs-table

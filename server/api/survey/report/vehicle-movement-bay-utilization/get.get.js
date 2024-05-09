@@ -6,8 +6,9 @@ export default defineEventHandler(async (event) => {
       projectName,
       dataType,
       parkerType,
-      surveyDateFrom,
-      surveyDateTo,
+      surveyDate,
+      surveyTimeFrom,
+      surveyTimeTo,
       gracePeriod,
     } = getQuery(event);
 
@@ -37,14 +38,49 @@ export default defineEventHandler(async (event) => {
 
     const dateOfReport = DateTime.now().toFormat("dd/MM/yyyy");
 
+    let combinedDateTimeFrom = null;
+    let combinedDateTimeTo = null;
+
+    if (surveyDate) {
+      if (surveyTimeFrom) {
+        // Combine surveyDate and surveyTimeFrom  because surveyDate format is yyyy-MM-dd and surveyTimeFrom format is HH:mm
+        combinedDateTimeFrom = DateTime.fromFormat(
+          surveyDate + " " + surveyTimeFrom,
+          "yyyy-MM-dd HH:mm"
+        );
+      }
+
+      if (surveyTimeTo) {
+        // Combine surveyDate and surveyTimeTo  because surveyDate format is yyyy-MM-dd and surveyTimeTo format is HH:mm
+        combinedDateTimeTo = DateTime.fromFormat(
+          surveyDate + " " + surveyTimeTo,
+          "yyyy-MM-dd HH:mm"
+        );
+      }
+    }
+
     const getSurveyList = await prisma.survey_list.findMany({
       where: {
         project_id: project.project_id,
         project_parker_type: parkerType ? parkerType : undefined,
-        vehicle_timein: {
-          gte: surveyDateFrom ? DateTime.fromISO(surveyDateFrom) : undefined,
-          lte: surveyDateTo ? DateTime.fromISO(surveyDateTo) : undefined,
-        },
+        ...(surveyDate && {
+          vehicle_timein: {
+            gte: DateTime.fromISO(surveyDate).startOf("day"),
+            lte: DateTime.fromISO(surveyDate).endOf("day"),
+          },
+        }),
+        // Conditionally include vehicle_timein filter
+        ...(combinedDateTimeFrom && {
+          vehicle_timein: {
+            gte: combinedDateTimeFrom.toISO(),
+          },
+        }),
+        // Conditionally include vehicle_timeout filter
+        ...(combinedDateTimeTo && {
+          vehicle_timeout: {
+            lte: combinedDateTimeTo.toISO(),
+          },
+        }),
       },
       select: {
         survey_list_id: true,
@@ -179,7 +215,9 @@ export default defineEventHandler(async (event) => {
 
       data[i] = {
         ...data[i],
-        date,
+        date: DateTime.fromFormat(surveyDate, "yyyy-MM-dd").toFormat(
+          "dd/MM/yyyy"
+        ),
         carEntry,
         carExit,
         carInPark,

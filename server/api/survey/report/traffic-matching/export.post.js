@@ -7,8 +7,10 @@ export default defineEventHandler(async (event) => {
     const {
       projectName,
       dateOfReport,
-      surveyDateFrom,
-      surveyDateTo,
+      surveyDate,
+      surveyTimeFrom,
+      surveyTimeTo,
+      parkerType,
       totalNumberOfRecord,
       totalRecord,
       entryRecord,
@@ -18,17 +20,7 @@ export default defineEventHandler(async (event) => {
       accuracy,
     } = await readBody(event);
 
-    if (
-      !projectName ||
-      !dateOfReport ||
-      !totalNumberOfRecord ||
-      !totalRecord ||
-      !entryRecord ||
-      !exitRecord ||
-      !matchedRecord ||
-      !unmatchedRecord ||
-      !accuracy
-    )
+    if (!projectName || !dateOfReport)
       return {
         statusCode: 400,
         message: "Bad Request",
@@ -37,8 +29,10 @@ export default defineEventHandler(async (event) => {
     const base64File = await generatePDFReport(
       projectName,
       dateOfReport,
-      surveyDateFrom,
-      surveyDateTo,
+      surveyDate,
+      surveyTimeFrom,
+      surveyTimeTo,
+      parkerType,
       totalNumberOfRecord,
       totalRecord,
       entryRecord,
@@ -72,8 +66,10 @@ export default defineEventHandler(async (event) => {
 async function generatePDFReport(
   projectName,
   dateOfReport,
-  surveyDateFrom,
-  surveyDateTo,
+  surveyDate,
+  surveyTimeFrom,
+  surveyTimeTo,
+  parkerType,
   totalNumberOfRecord,
   totalRecord,
   entryRecord,
@@ -139,21 +135,25 @@ async function generatePDFReport(
     doc.moveDown();
     addText("Project Name:", projectName, true);
     doc.moveDown();
+    addText("Survey Date:", surveyDate ? surveyDate : "All", true);
+    doc.moveDown();
+    addText("Parker Type:", parkerType ? parkerType : "All", true);
+    doc.moveDown();
 
     doc.font("Helvetica-Bold").text("Time of Survey", { continued: true });
     doc.font("Helvetica-Bold").text("   From: ", { continued: true });
     doc
       .font("Helvetica")
-      .text(surveyDateFrom ? surveyDateFrom : "-", { continued: true });
+      .text(surveyTimeFrom ? surveyTimeFrom : "-", { continued: true });
     doc.font("Helvetica-Bold").text("   To: ", { continued: true });
-    doc.font("Helvetica").text(surveyDateTo ? surveyDateTo : "-");
+    doc.font("Helvetica").text(surveyTimeFrom ? surveyTimeFrom : "-");
 
     doc.moveDown();
     doc.moveDown();
 
-    doc.text("Number of Entry Record: " + entryRecord);
+    doc.text("Number of Entry Record: " + entryRecord || 0);
     doc.moveDown();
-    doc.text("Number of Exit Record: " + exitRecord);
+    doc.text("Number of Exit Record: " + exitRecord) || 0;
     doc.moveDown();
 
     doc.moveTo(70, doc.y).lineTo(250, doc.y).stroke();
@@ -161,13 +161,13 @@ async function generatePDFReport(
     doc
       .font("Helvetica-Bold")
       .text("Total Number of Records:", { continued: true });
-    doc.font("Helvetica").text("   " + totalNumberOfRecord);
+    doc.font("Helvetica").text("   " + totalNumberOfRecord || 0);
 
     doc.moveDown();
     doc.moveDown();
-    doc.text("Matched Records: " + matchedRecord);
+    doc.text("Matched Records: " + matchedRecord || 0);
     doc.moveDown();
-    doc.text("Unmatched Records: " + unmatchedRecord);
+    doc.text("Unmatched Records: " + unmatchedRecord || 0);
     doc.moveDown();
 
     doc.moveTo(70, doc.y).lineTo(250, doc.y).stroke();
@@ -177,6 +177,7 @@ async function generatePDFReport(
 
     doc.moveDown();
     doc.moveDown();
+    accuracy = accuracy ? accuracy : 0;
     doc.text("Accuracy: " + accuracy + "%");
 
     doc.end();

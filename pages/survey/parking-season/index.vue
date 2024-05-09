@@ -38,6 +38,8 @@ if (projectList.value.statusCode == 200) {
 }
 
 const getVehicleList = async () => {
+  seasonParkingList.value = [];
+
   const { data } = await useFetch("/api/survey/parking-season/list", {
     method: "GET",
     params: {

@@ -10,8 +10,9 @@ const { $swal } = useNuxtApp();
 const qProjectName = useRoute().query.project_name;
 const qDataType = useRoute().query.data_type;
 const qParkerType = useRoute().query.parker_type;
-const qSurveyDateFrom = useRoute().query.survey_date_from;
-const qSurveyDateTo = useRoute().query.survey_date_to;
+const qSurveyDate = useRoute().query.survey_date;
+const qSurveyTimeFrom = useRoute().query.survey_time_from;
+const qSurveyTimeTo = useRoute().query.survey_time_to;
 
 const fileData = ref(null);
 
@@ -19,8 +20,9 @@ const filter = ref({
   projectName: qProjectName || "",
   dataType: qDataType || "",
   parkerType: qParkerType || "",
-  surveyDateFrom: qSurveyDateFrom || "",
-  surveyDateTo: qSurveyDateTo || "",
+  surveyDate: qSurveyDate || "",
+  surveyTimeFrom: qSurveyTimeFrom || "",
+  surveyTimeTo: qSurveyTimeTo || "",
 });
 
 const projectOptions = ref(null);
@@ -52,8 +54,9 @@ const { data: matchingReport } = await useFetch(
       projectName: filter.value.projectName,
       dataType: filter.value.dataType,
       parkerType: filter.value.parkerType,
-      surveyDateFrom: filter.value.surveyDateFrom,
-      surveyDateTo: filter.value.surveyDateTo,
+      surveyDate: filter.value.surveyDate,
+      surveyTimeFrom: filter.value.surveyTimeFrom,
+      surveyTimeTo: filter.value.surveyTimeTo,
     },
   }
 );
@@ -63,13 +66,48 @@ if (matchingReport.value.statusCode == 200) {
   showReport.value = true;
 }
 
+const optionDate = ref([]);
+
+onMounted(async () => {
+  if (filter.value.projectName) {
+    await assignedDateOption(filter.value.projectName);
+  }
+});
+
+watch(
+  () => filter.value.projectName,
+  async (value) => {
+    if (value) {
+      await assignedDateOption(value);
+    }
+  },
+  {
+    deep: true,
+  }
+);
+
+const assignedDateOption = async (name) => {
+  const { data: dateList } = await useFetch("/api/survey/list/date", {
+    method: "GET",
+    params: {
+      projectName: name,
+      type: "select",
+    },
+  });
+
+  if (dateList.value.statusCode == 200) {
+    optionDate.value = dateList.value.data;
+  }
+};
+
 const submitFilter = async () => {
   const query = {
     project_name: filter.value.projectName,
     data_type: filter.value.dataType,
     parker_type: filter.value.parkerType,
-    survey_date_from: filter.value.surveyDateFrom,
-    survey_date_to: filter.value.surveyDateTo,
+    survey_date: filter.value.surveyDate,
+    survey_time_from: filter.value.surveyTimeFrom,
+    survey_time_to: filter.value.surveyTimeTo,
   };
 
   navigateTo({ query });
@@ -86,8 +124,9 @@ const exportReport = async () => {
           dateOfReport: reportData.value.dateOfReport,
           dataType: filter.value.dataType,
           parkerType: filter.value.parkerType,
-          surveyDateFrom: filter.value.surveyDateFrom,
-          surveyDateTo: filter.value.surveyDateTo,
+          surveyDate: filter.value.surveyDate,
+          surveyTimeFrom: filter.value.surveyTimeFrom,
+          surveyTimeTo: filter.value.surveyTimeTo,
           vmbuList: reportData.value.vmbuList,
           carTotalEntry: reportData.value.carTotalEntry,
           carTotalExit: reportData.value.carTotalExit,
@@ -144,6 +183,15 @@ const exportReport = async () => {
         />
 
         <FormKit
+          v-model="filter.surveyDate"
+          :options="optionDate"
+          type="select"
+          label="Survey Date"
+          help="Select Project Name first to get the available dates."
+          validation="required"
+        />
+
+        <!-- <FormKit
           v-model="filter.dataType"
           type="radio"
           label="Data Type"
@@ -191,23 +239,13 @@ const exportReport = async () => {
               value: 'SEASON',
             },
           ]"
-        />
+        /> -->
         <label class="formkit-label formkit-label-global formkit-outer-text">
           Time of Survey
         </label>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <FormKit
-            v-model="filter.surveyDateFrom"
-            type="datetime-local"
-            label="From"
-            :validation="`date_before:${filter.surveyDateTo}`"
-          />
-          <FormKit
-            v-model="filter.surveyDateTo"
-            type="datetime-local"
-            label="To"
-            :validation="`date_after:${filter.surveyDateFrom}`"
-          />
+          <FormKit v-model="filter.surveyTimeFrom" type="time" label="From" />
+          <FormKit v-model="filter.surveyTimeTo" type="time" label="To" />
         </div>
 
         <div class="flex items-center mt-2">

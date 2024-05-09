@@ -5,7 +5,7 @@ import { DateTime } from "luxon";
 
 export default defineEventHandler(async (event) => {
   try {
-    const { projectName, dateOfReport, date, seasonParkingList } =
+    const { projectName, dateOfReport, date, seasonParkingList, totalVehicle } =
       await readBody(event);
 
     if (!projectName || !dateOfReport)
@@ -18,7 +18,8 @@ export default defineEventHandler(async (event) => {
       projectName,
       dateOfReport,
       date,
-      seasonParkingList
+      seasonParkingList,
+      totalVehicle
     );
 
     return {
@@ -39,7 +40,8 @@ async function generatePDFReport(
   projectName,
   dateOfReport,
   date,
-  seasonParkingList
+  seasonParkingList,
+  totalVehicle
 ) {
   try {
     // Create a folder to save the PDF file
@@ -74,39 +76,6 @@ async function generatePDFReport(
       }
     }
 
-    // Add content to the PDF document
-    doc.font("Helvetica");
-    doc.fontSize(18).text("First Parking", {
-      align: "center",
-    });
-
-    doc.font("Helvetica-Bold");
-    doc.fontSize(18).text("SEASON PARKING REPORT", {
-      align: "center",
-      underline: true,
-    });
-
-    doc.font("Helvetica");
-    doc.fontSize(18).text("Page 1 of 1", {
-      align: "center",
-    });
-
-    doc.moveDown();
-
-    doc.fontSize(12);
-    addText("Date of Report:", dateOfReport, true);
-    doc.moveDown();
-    addText("Project Name:", projectName, true);
-    doc.moveDown();
-    addText(
-      "Date:",
-      date ? DateTime.fromISO(date).toFormat("dd/MM/yyyy") : "-",
-      true
-    );
-
-    doc.moveDown();
-    doc.moveDown();
-
     // Get Object Keys for the header
     let header = Object.keys(seasonParkingList[0]);
     header = header.map((element) => camelCaseToTitleCase(element));
@@ -114,17 +83,74 @@ async function generatePDFReport(
     // Get Object Values for the rows
     const rows = seasonParkingList.map((obj) => Object.values(obj));
 
-    // Create a table for Multiple Entry List
-    doc.table(
-      {
-        headers: header,
-        rows: rows,
-      },
-      {
-        prepareHeader: () => doc.font("Helvetica-Bold"),
-        prepareRow: (row, i) => doc.font("Helvetica").fontSize(12),
+    function addTableWithHeaders(header, rows) {
+      const pageSize = 19; // Example number, adjust as needed
+      const numPages = Math.ceil(rows.length / pageSize);
+
+      let pageNumber = 1;
+      let startIndex = 0;
+
+      while (pageNumber <= numPages) {
+        // Add page
+        if (pageNumber > 1) {
+          doc.addPage();
+        }
+
+        // Add header
+        doc.font("Helvetica");
+        doc.fontSize(18).text("First Parking", {
+          align: "center",
+        });
+
+        doc.font("Helvetica-Bold");
+        doc.fontSize(18).text("SEASON PARKING REPORT", {
+          align: "center",
+          underline: true,
+        });
+
+        doc.font("Helvetica");
+        doc.fontSize(18).text(`Page ${pageNumber} of ${numPages}`, {
+          align: "center",
+        });
+
+        doc.moveDown();
+
+        if (pageNumber === 1) {
+          doc.fontSize(12);
+          addText("Date of Report:", dateOfReport, true);
+          doc.moveDown();
+          addText("Project Name:", projectName, true);
+          doc.moveDown();
+          addText("Total Vehicle:", totalVehicle, true);
+
+          doc.moveDown();
+          doc.moveDown();
+        }
+
+        // Calculate endIndex for current page
+        const endIndex = Math.min(startIndex + pageSize, rows.length);
+
+        // Get data for current page
+        const pageRows = rows.slice(startIndex, endIndex);
+
+        // Draw table
+        doc.table(
+          {
+            headers: header,
+            rows: pageRows,
+          },
+          {
+            prepareHeader: () => doc.font("Helvetica-Bold"),
+            prepareRow: (row, i) => doc.font("Helvetica").fontSize(12),
+          }
+        );
+        // Update startIndex and pageNumber
+        startIndex += pageSize;
+        pageNumber++;
       }
-    );
+    }
+
+    addTableWithHeaders(header, rows);
 
     // End the PDF document
     doc.end();

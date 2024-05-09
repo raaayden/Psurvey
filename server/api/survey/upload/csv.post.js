@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
 
     fileList.forEach(async (file, index) => {
       let parsedFile = parse(file.data, { columns: true });
-      console.log("parsedFile: ", parsedFile);
+      // console.log("parsedFile: ", parsedFile);
 
       if (!parsedFile || !parsedFile.length) {
         statusCode = 400;
@@ -91,7 +91,8 @@ export default defineEventHandler(async (event) => {
 
     for (let i = 0; i < csvData.length; i++) {
       const survey = csvData[i];
-      console.log("survey: ", survey);
+      // console.log("survey: ", survey);
+      console.log("Data Number: ", i + 1, " / ", csvData.length);
 
       // Check if the survey_id already exists in the database
       const surveyExist = await prisma.survey_list.findUnique({

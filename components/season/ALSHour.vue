@@ -104,12 +104,22 @@ const previewFilteredData = async () => {
 
 const addSeasonParking = async () => {
   try {
-    const { data } = await useFetch("/api/survey/parking-season/vehicle/add", {
-      method: "POST",
-      body: {
-        projectID: form.value.projectID,
-      },
+    let arrayPlate = [];
+
+    vehicleSeasonList.value.forEach((vehicle) => {
+      arrayPlate.push(vehicle.carPlateNumber);
     });
+
+    const { data } = await useFetch(
+      "/api/survey/parking-season/add-vehicle/add",
+      {
+        method: "POST",
+        body: {
+          projectID: form.value.projectID,
+          vehicleList: arrayPlate,
+        },
+      }
+    );
 
     if (data.value.statusCode == 200) {
       $swal.fire({
@@ -145,7 +155,6 @@ const addSeasonParking = async () => {
           label="Project Name"
           :options="optionsProjectList"
           validation="required"
-          help="Select project name first to see available vehicle plate number"
         />
 
         <FormKit

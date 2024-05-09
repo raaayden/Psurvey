@@ -8,8 +8,10 @@ const { $swal } = useNuxtApp();
 const qProjectName = useRoute().query.project_name;
 const qDataType = useRoute().query.data_type;
 const qParkerType = useRoute().query.parker_type;
-const qSurveyDateFrom = useRoute().query.survey_date_from;
-const qSurveyDateTo = useRoute().query.survey_date_to;
+const qSurveyDate = useRoute().query.survey_date;
+const qSurveyTimeFrom = useRoute().query.survey_time_from;
+const qSurveyTimeTo = useRoute().query.survey_time_to;
+const qEntryNo = useRoute().query.entry_no;
 
 const fileData = ref(null);
 
@@ -17,8 +19,10 @@ const filter = ref({
   projectName: qProjectName || "",
   dataType: qDataType || "",
   parkerType: qParkerType || "",
-  surveyDateFrom: qSurveyDateFrom || "",
-  surveyDateTo: qSurveyDateTo || "",
+  surveyDate: qSurveyDate || "",
+  surveyTimeFrom: qSurveyTimeFrom || "",
+  surveyTimeTo: qSurveyTimeTo || "",
+  entryNo: qEntryNo || "",
 });
 
 const projectOptions = ref(null);
@@ -50,8 +54,10 @@ const { data: matchingReport } = await useFetch(
       projectName: filter.value.projectName,
       dataType: filter.value.dataType,
       parkerType: filter.value.parkerType,
-      surveyDateFrom: filter.value.surveyDateFrom,
-      surveyDateTo: filter.value.surveyDateTo,
+      surveyDate: filter.value.surveyDate,
+      surveyTimeFrom: filter.value.surveyTimeFrom,
+      surveyTimeTo: filter.value.surveyTimeTo,
+      entryNo: filter.value.entryNo,
     },
   }
 );
@@ -61,13 +67,48 @@ if (matchingReport.value.statusCode == 200) {
   showReport.value = true;
 }
 
+const optionDate = ref([]);
+
+onMounted(async () => {
+  if (filter.value.projectName) {
+    await assignedDateOption(filter.value.projectName);
+  }
+});
+
+watch(
+  () => filter.value.projectName,
+  async (value) => {
+    if (value) {
+      await assignedDateOption(value);
+    }
+  },
+  {
+    deep: true,
+  }
+);
+
+const assignedDateOption = async (name) => {
+  const { data: dateList } = await useFetch("/api/survey/list/date", {
+    method: "GET",
+    params: {
+      projectName: name,
+    },
+  });
+
+  if (dateList.value.statusCode == 200) {
+    optionDate.value = dateList.value.data;
+  }
+};
+
 const submitFilter = async () => {
   const query = {
     project_name: filter.value.projectName,
     data_type: filter.value.dataType,
     parker_type: filter.value.parkerType,
-    survey_date_from: filter.value.surveyDateFrom,
-    survey_date_to: filter.value.surveyDateTo,
+    survey_date: filter.value.surveyDate,
+    survey_time_from: filter.value.surveyTimeFrom,
+    survey_time_to: filter.value.surveyTimeTo,
+    entry_no: filter.value.entryNo,
   };
 
   navigateTo({ query });
@@ -84,11 +125,12 @@ const exportReport = async () => {
           dateOfReport: reportData.value.dateOfReport,
           dataType: filter.value.dataType,
           parkerType: filter.value.parkerType,
-          surveyDateFrom: filter.value.surveyDateFrom,
-          surveyDateTo: filter.value.surveyDateTo,
-          totalNoOfEntry: reportData.value.totalNoOfEntry,
+          surveyDate: reportData.value.surveyDate,
+          surveyTimeFrom: reportData.value.surveyTimeFrom,
+          surveyTimeTo: reportData.value.surveyTimeTo,
           multipleEntryList: reportData.value.multipleEntryList,
-          noOfEntry: reportData.value.noOfEntry,
+          totalVehicle: reportData.value.totalVehicle,
+          entryNo: reportData.value.entryNo,
         },
       }
     );
@@ -120,6 +162,37 @@ const exportReport = async () => {
     console.log(error);
   }
 };
+
+const addSeasonParking = async (vehicleNo) => {
+  try {
+    const { data } = await useFetch(
+      "/api/survey/parking-season/add-vehicle/add",
+      {
+        method: "POST",
+        body: {
+          projectID: reportData.value.projectID,
+          vehicleList: [vehicleNo],
+        },
+      }
+    );
+
+    if (data.value.statusCode == 200) {
+      $swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Vehicle has been added successfully",
+      });
+    } else {
+      $swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to add vehicle",
+      });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
 </script>
 
 <template>
@@ -139,6 +212,14 @@ const exportReport = async () => {
         />
 
         <FormKit
+          v-model="filter.surveyDate"
+          :options="optionDate"
+          type="select"
+          label="Survey Date"
+          help="Select Project Name first to get the available dates."
+        />
+
+        <FormKit
           v-model="filter.dataType"
           type="radio"
           label="Data Type"
@@ -149,12 +230,8 @@ const exportReport = async () => {
           }"
           :options="[
             {
-              label: 'All',
-              value: '',
-            },
-            {
               label: 'Raw',
-              value: 'RAW',
+              value: '',
             },
             {
               label: 'Adjusted',
@@ -191,19 +268,16 @@ const exportReport = async () => {
           Time of Survey
         </label>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <FormKit
-            v-model="filter.surveyDateFrom"
-            type="datetime-local"
-            label="From"
-            :validation="`date_before:${filter.surveyDateTo}`"
-          />
-          <FormKit
-            v-model="filter.surveyDateTo"
-            type="datetime-local"
-            label="To"
-            :validation="`date_after:${filter.surveyDateFrom}`"
-          />
+          <FormKit v-model="filter.surveyTimeFrom" type="time" label="From" />
+          <FormKit v-model="filter.surveyTimeTo" type="time" label="To" />
         </div>
+
+        <FormKit
+          v-model="filter.entryNo"
+          type="number"
+          label="No. of Entry"
+          validation="number|min:1"
+        />
 
         <div class="flex items-center mt-2">
           <rs-button btn-type="submit"> Filter Report </rs-button>
@@ -245,28 +319,34 @@ const exportReport = async () => {
               <span class="col-span-4">{{ reportData.dateOfReport }}</span>
               <h6>Project Name:</h6>
               <span class="col-span-4">{{ reportData.projectName }}</span>
+              <h6>Survey Date:</h6>
+              <span class="col-span-4">{{
+                reportData.surveyDate ? reportData.surveyDate : "All"
+              }}</span>
+              <h6>Parker Type:</h6>
+              <span class="col-span-4">{{
+                reportData.parkerType ? reportData.parkerType : "All"
+              }}</span>
               <h6>Time of Survey:</h6>
               <h6>From</h6>
               <span>
                 {{
-                  reportData.surveyDateFrom
-                    ? new Date(reportData.surveyDateFrom).toLocaleString()
-                    : "-"
+                  reportData.surveyTimeFrom ? reportData.surveyTimeFrom : "-"
                 }}
               </span>
               <h6>To</h6>
               <span>
-                {{
-                  reportData.surveyDateTo
-                    ? new Date(reportData.surveyDateTo).toLocaleString()
-                    : "-"
-                }}
+                {{ reportData.surveyTimeTo ? reportData.surveyTimeTo : "-" }}
               </span>
-              <h6>Total No. of Entry:</h6>
-              <span class="col-span-4">{{ reportData.totalNoOfEntry }}</span>
+
               <h6>No. of Entry:</h6>
               <span class="col-span-4">{{
-                reportData.noOfEntry == 0 ? "-" : reportData.noOfEntry
+                reportData.entryNo ? reportData.entryNo : "-"
+              }}</span>
+
+              <h6>Total Vehicle:</h6>
+              <span class="col-span-4">{{
+                reportData.totalVehicle ? reportData.totalVehicle : 0
               }}</span>
             </div>
 
@@ -275,8 +355,19 @@ const exportReport = async () => {
                 reportData.multipleEntryList &&
                 reportData.multipleEntryList.length > 0
               "
+              :field="['vehicleNo', 'entryCount', 'action']"
               :data="reportData.multipleEntryList"
-            />
+            >
+              <template v-slot:action="data">
+                <rs-button
+                  variant="primary-outline"
+                  @click="addSeasonParking(data.value.vehicleNo)"
+                >
+                  <Icon name="ph:plus-circle" class="mr-1 !w-5 !h-5" />
+                  Add Season Parking
+                </rs-button>
+              </template>
+            </rs-table>
           </div>
         </div>
       </template>

@@ -64,12 +64,12 @@ export default defineEventHandler(async (event) => {
         project: survey.project_name,
         timeIn: survey.vehicle_timein
           ? DateTime.fromJSDate(survey.vehicle_timein).toFormat(
-              "dd/MM/yyyy hh:mm:ss"
+              "dd/MM/yyyy HH:mm:ss"
             )
           : null,
         timeOut: survey.vehicle_timeout
           ? DateTime.fromJSDate(survey.vehicle_timeout).toFormat(
-              "dd/MM/yyyy hh:mm:ss"
+              "dd/MM/yyyy HH:mm:ss"
             )
           : null,
         entryExitCode: survey.project_eecode,

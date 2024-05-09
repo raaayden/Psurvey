@@ -71,7 +71,7 @@ const dataLength = ref(props.data.length);
 const currentSort = ref(0);
 const currentSortDir = ref("asc");
 const currentPage = ref(1);
-const pageSize = ref(props.pageSize);
+const pageSize = ref(props.advanced ? props.pageSize : 100000);
 const maxPageShown = ref(3);
 
 // Searching Variable

@@ -7,13 +7,16 @@ export default defineEventHandler(async (event) => {
     const {
       projectName,
       dateOfReport,
-      surveyDateFrom,
-      surveyDateTo,
+      surveyDate,
+      surveyTimeFrom,
+      surveyTimeTo,
       gracePeriod,
       alsList,
-      totalAllALSHours,
+      totalVehicle,
+      gracePeriodVolume,
+      grandTotalVolume,
       averageALS,
-      totalVolume,
+      totalAllALSHours,
     } = await readBody(event);
 
     if (!projectName || !dateOfReport || !alsList) {
@@ -26,13 +29,16 @@ export default defineEventHandler(async (event) => {
     const base64File = await generatePDFReport(
       projectName,
       dateOfReport,
-      surveyDateFrom,
-      surveyDateTo,
+      surveyDate,
+      surveyTimeFrom,
+      surveyTimeTo,
       gracePeriod,
       alsList,
-      totalAllALSHours,
+      totalVehicle,
+      gracePeriodVolume,
+      grandTotalVolume,
       averageALS,
-      totalVolume
+      totalAllALSHours
     );
 
     if (!base64File) {
@@ -58,13 +64,16 @@ export default defineEventHandler(async (event) => {
 async function generatePDFReport(
   projectName,
   dateOfReport,
-  surveyDateFrom,
-  surveyDateTo,
+  surveyDate,
+  surveyTimeFrom,
+  surveyTimeTo,
   gracePeriod,
   alsList,
-  totalAllALSHours,
+  totalVehicle,
+  gracePeriodVolume,
+  grandTotalVolume,
   averageALS,
-  totalVolume
+  totalAllALSHours
 ) {
   try {
     // Create a folder to save the PDF file
@@ -109,7 +118,7 @@ async function generatePDFReport(
     const rows = alsList.map((obj) => Object.values(obj));
 
     function addTableWithHeaders(header, rows) {
-      const pageSize = 25; // Example number, adjust as needed
+      const pageSize = 19; // Example number, adjust as needed
       const numPages = Math.ceil(rows.length / pageSize);
 
       let pageNumber = 1;
@@ -146,6 +155,8 @@ async function generatePDFReport(
           doc.moveDown();
           addText("Project Name:", projectName, true);
           doc.moveDown();
+          addText("Date of Survey:", surveyDate, true);
+          doc.moveDown();
 
           doc
             .font("Helvetica-Bold")
@@ -153,12 +164,27 @@ async function generatePDFReport(
           doc.font("Helvetica-Bold").text("   From: ", { continued: true });
           doc
             .font("Helvetica")
-            .text(surveyDateFrom ? surveyDateFrom : "-", { continued: true });
+            .text(surveyTimeFrom ? surveyTimeFrom : "-", { continued: true });
           doc.font("Helvetica-Bold").text("   To: ", { continued: true });
-          doc.font("Helvetica").text(surveyDateTo ? surveyDateTo : "-");
-
+          doc.font("Helvetica").text(surveyTimeFrom ? surveyTimeFrom : "-");
           doc.moveDown();
-          addText("Grace Period Min:", gracePeriod, true);
+
+          addText("Min Grace Period:", gracePeriod ? gracePeriod : "-", true);
+          doc.moveDown();
+
+          addText(
+            "Grace Period Volume: ",
+            gracePeriodVolume ? gracePeriodVolume.toString() : "-",
+            false
+          );
+          doc.moveDown();
+
+          addText(
+            "Grand Total of Volume: ",
+            grandTotalVolume ? grandTotalVolume.toString() : "-",
+            false
+          );
+          doc.moveDown();
 
           doc.moveDown();
           doc.moveDown();
@@ -185,17 +211,16 @@ async function generatePDFReport(
     addTableWithHeaders(header, rows);
 
     // Add line horizontally
-    doc.moveTo(50, 525).lineTo(550, 525).stroke();
+    doc.moveTo(50, 325).lineTo(550, 325).stroke();
     doc.font("Helvetica-Bold");
-    doc.text(totalVolume, 165, 535);
-    doc.text(totalAllALSHours + " Hrs", 353, 535);
-    doc.text(totalVolume, 447, 535);
+    doc.text(grandTotalVolume, 227, 335);
+    doc.text(totalAllALSHours + " Hrs", 387, 335);
 
     doc.moveDown();
     doc.moveDown();
 
     doc.font("Helvetica-Bold").text("Grand Total of Volume: ");
-    doc.font("Helvetica").text(totalVolume);
+    doc.font("Helvetica").text(grandTotalVolume);
 
     doc.moveDown();
     doc.font("Helvetica-Bold").text("Average ALS: ");

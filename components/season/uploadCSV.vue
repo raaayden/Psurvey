@@ -154,7 +154,6 @@ const addSeasonParking = async () => {
           label="Project Name"
           :options="optionsProjectList"
           validation="required"
-          help="Select project name first to see available vehicle plate number"
         />
 
         <FormKit type="file" @change="onFileChange" accept=".csv" />

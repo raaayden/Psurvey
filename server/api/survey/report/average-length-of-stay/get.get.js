@@ -6,8 +6,9 @@ export default defineEventHandler(async (event) => {
       projectName,
       dataType,
       parkerType,
-      surveyDateFrom,
-      surveyDateTo,
+      surveyDate,
+      surveyTimeFrom,
+      surveyTimeTo,
       gracePeriod,
     } = getQuery(event);
 
@@ -37,14 +38,49 @@ export default defineEventHandler(async (event) => {
 
     const dateOfReport = DateTime.now().toFormat("dd/MM/yyyy");
 
+    let combinedDateTimeFrom = null;
+    let combinedDateTimeTo = null;
+
+    if (surveyDate) {
+      if (surveyTimeFrom) {
+        // Combine surveyDate and surveyTimeFrom  because surveyDate format is yyyy-MM-dd and surveyTimeFrom format is HH:mm
+        combinedDateTimeFrom = DateTime.fromFormat(
+          surveyDate + " " + surveyTimeFrom,
+          "yyyy-MM-dd HH:mm"
+        );
+      }
+
+      if (surveyTimeTo) {
+        // Combine surveyDate and surveyTimeTo  because surveyDate format is yyyy-MM-dd and surveyTimeTo format is HH:mm
+        combinedDateTimeTo = DateTime.fromFormat(
+          surveyDate + " " + surveyTimeTo,
+          "yyyy-MM-dd HH:mm"
+        );
+      }
+    }
+
     const getSurveyList = await prisma.survey_list.findMany({
       where: {
         project_id: project.project_id,
         project_parker_type: parkerType ? parkerType : undefined,
-        vehicle_timein: {
-          gte: surveyDateFrom ? DateTime.fromISO(surveyDateFrom) : undefined,
-          lte: surveyDateTo ? DateTime.fromISO(surveyDateTo) : undefined,
-        },
+        ...(surveyDate && {
+          vehicle_timein: {
+            gte: DateTime.fromISO(surveyDate).startOf("day"),
+            lte: DateTime.fromISO(surveyDate).endOf("day"),
+          },
+        }),
+        // Conditionally include vehicle_timein filter
+        ...(combinedDateTimeFrom && {
+          vehicle_timein: {
+            gte: combinedDateTimeFrom.toISO(),
+          },
+        }),
+        // Conditionally include vehicle_timeout filter
+        ...(combinedDateTimeTo && {
+          vehicle_timeout: {
+            lte: combinedDateTimeTo.toISO(),
+          },
+        }),
       },
       select: {
         survey_list_id: true,
@@ -68,17 +104,23 @@ export default defineEventHandler(async (event) => {
       data.push({
         lengthOfStay: lookup.name,
         volume: 0,
-        gracePeriodMin: gracePeriod ? gracePeriod : 0,
         totalALSHours: 0,
-        ALSVolume: 0,
       });
     });
 
-    let totalVolume = 0;
+    let totalVehicle = 0;
+    let gracePeriodVolume = 0;
     let totalAllALSHours = 0;
     let averageALS = 0;
 
-    // Example of getLookupLOS = [{id:2,name: '00 Hrs 30 mins', value: '00.30'},{id:3,name: '01 Hrs 00 mins', value: '01.00'}] until 23.30
+    let convertedGracePeriod = 0;
+
+    // Convert grace period of minutes to hh:mm format
+    if (gracePeriod) {
+      const gracePeriodInHours = gracePeriod / 60;
+      convertedGracePeriod = convertDecimalToHoursMinutes(gracePeriodInHours);
+    }
+
     for (let i = 0; i < getSurveyList.length; i++) {
       const survey = getSurveyList[i];
 
@@ -91,7 +133,6 @@ export default defineEventHandler(async (event) => {
       const timeOut = DateTime.fromJSDate(survey.vehicle_timeout);
 
       const duration = timeOut.diff(timeIn, ["hours", "minutes"]);
-
       const durationInHours = duration.hours + duration.minutes / 60;
 
       // Find the closest match and increment the count for that match
@@ -107,13 +148,28 @@ export default defineEventHandler(async (event) => {
         (item) => item.lengthOfStay === closestMatch.name
       );
 
+      // If not found, skip to next iteration
       if (index === -1) {
         continue;
       }
 
-      data[index].volume += 1;
-      data[index].ALSVolume += 1;
-      // data[index].totalALSHours += durationInHours;
+      // Increment total vehicle
+      totalVehicle += 1;
+
+      // Check if duration is more than grace period
+      if (convertedGracePeriod) {
+        if (
+          durationInHours >=
+          convertHoursMinutesToDecimal(convertedGracePeriod).toFixed(2)
+        ) {
+          continue;
+        }
+
+        // Increment grace period volume
+        gracePeriodVolume += 1;
+      }
+
+      // Calculate total ALS hours
       let hours = 0;
       if (data[index].totalALSHours !== 0) {
         hours = convertHoursMinutesToDecimal(data[index].totalALSHours);
@@ -122,14 +178,16 @@ export default defineEventHandler(async (event) => {
         hours = durationInHours;
       }
 
+      // Convert total ALS hours to hh:mm format
       data[index].totalALSHours = convertDecimalToHoursMinutes(hours);
 
-      totalVolume += 1;
+      // Increment the volume for that match
+      data[index].volume += 1;
       totalAllALSHours += durationInHours;
     }
 
-    if (totalAllALSHours > 0 && totalVolume > 0)
-      averageALS = totalAllALSHours / totalVolume;
+    if (totalAllALSHours > 0 && gracePeriodVolume > 0)
+      averageALS = totalAllALSHours / gracePeriodVolume;
 
     return {
       statusCode: 200,
@@ -137,7 +195,9 @@ export default defineEventHandler(async (event) => {
       data: {
         dateOfReport,
         alsList: data,
-        totalVolume,
+        totalVehicle,
+        gracePeriodVolume,
+        grandTotalVolume: totalVehicle - gracePeriodVolume,
         averageALS: convertDecimalToHoursMinutes(averageALS),
         totalAllALSHours: convertDecimalToHoursMinutes(totalAllALSHours),
       },

@@ -1,4 +1,5 @@
 <script setup>
+import graceList from "./grace.json";
 import { DateTime } from "luxon";
 
 definePageMeta({
@@ -10,8 +11,9 @@ const { $swal } = useNuxtApp();
 const qProjectName = useRoute().query.project_name;
 const qDataType = useRoute().query.data_type;
 const qParkerType = useRoute().query.parker_type;
-const qSurveyDateFrom = useRoute().query.survey_date_from;
-const qSurveyDateTo = useRoute().query.survey_date_to;
+const qSurveyDate = useRoute().query.survey_date;
+const qSurveyTimeFrom = useRoute().query.survey_time_from;
+const qSurveyTimeTo = useRoute().query.survey_time_to;
 const qGracePeriod = useRoute().query.grace_period;
 
 const fileData = ref(null);
@@ -20,66 +22,14 @@ const filter = ref({
   projectName: qProjectName || "",
   dataType: qDataType || "",
   parkerType: qParkerType || "",
-  surveyDateFrom: qSurveyDateFrom || "",
-  surveyDateTo: qSurveyDateTo || "",
+  surveyDate: qSurveyDate || "",
+  surveyTimeFrom: qSurveyTimeFrom || "",
+  surveyTimeTo: qSurveyTimeTo || "",
   gracePeriod: qGracePeriod || "",
 });
 
 const projectOptions = ref(null);
-const gracePeriodOptions = ref([
-  {
-    label: "Select Grace Period",
-    value: "",
-  },
-  {
-    label: "5 Minutes",
-    value: "5",
-  },
-  {
-    label: "10 Minutes",
-    value: "10",
-  },
-  {
-    label: "15 Minutes",
-    value: "15",
-  },
-  {
-    label: "20 Minutes",
-    value: "20",
-  },
-  {
-    label: "25 Minutes",
-    value: "25",
-  },
-  {
-    label: "30 Minutes",
-    value: "30",
-  },
-  {
-    label: "35 Minutes",
-    value: "35",
-  },
-  {
-    label: "40 Minutes",
-    value: "40",
-  },
-  {
-    label: "45 Minutes",
-    value: "45",
-  },
-  {
-    label: "50 Minutes",
-    value: "50",
-  },
-  {
-    label: "55 Minutes",
-    value: "55",
-  },
-  {
-    label: "60 Minutes",
-    value: "60",
-  },
-]);
+const gracePeriodOptions = ref(graceList);
 
 const { data: projectList } = await useFetch(
   "/api/survey/report/filter/project-list",
@@ -108,8 +58,9 @@ const { data: matchingReport } = await useFetch(
       projectName: filter.value.projectName,
       dataType: filter.value.dataType,
       parkerType: filter.value.parkerType,
-      surveyDateFrom: filter.value.surveyDateFrom,
-      surveyDateTo: filter.value.surveyDateTo,
+      surveyDate: filter.value.surveyDate,
+      surveyTimeFrom: filter.value.surveyTimeFrom,
+      surveyTimeTo: filter.value.surveyTimeTo,
       gracePeriod: filter.value.gracePeriod,
     },
   }
@@ -125,24 +76,60 @@ const submitFilter = async () => {
     project_name: filter.value.projectName,
     data_type: filter.value.dataType,
     parker_type: filter.value.parkerType,
-    survey_date_from: filter.value.surveyDateFrom,
-    survey_date_to: filter.value.surveyDateTo,
+    survey_date: filter.value.surveyDate,
+    survey_time_from: filter.value.surveyTimeFrom,
+    survey_time_to: filter.value.surveyTimeTo,
+    grace_period: filter.value.gracePeriod,
   };
 
   navigateTo({ query });
 };
 
-const computedSurveyDateFrom = computed(() => {
-  return filter.value.surveyDateFrom
-    ? DateTime.fromISO(filter.value.surveyDateFrom).toFormat("yyyy-MM-dd")
-    : "";
+// const computedSurveyDateFrom = computed(() => {
+//   return filter.value.surveyTimeFrom
+//     ? DateTime.fromISO(filter.value.surveyTimeFrom).toFormat("yyyy-MM-dd")
+//     : "";
+// });
+
+// const computedSurveyDateTo = computed(() => {
+//   return filter.value.surveyTimeTo
+//     ? DateTime.fromISO(filter.value.surveyTimeTo).toFormat("yyyy-MM-dd")
+//     : "";
+// });
+
+const optionDate = ref([]);
+
+onMounted(async () => {
+  if (filter.value.projectName) {
+    await assignedDateOption(filter.value.projectName);
+  }
 });
 
-const computedSurveyDateTo = computed(() => {
-  return filter.value.surveyDateTo
-    ? DateTime.fromISO(filter.value.surveyDateTo).toFormat("yyyy-MM-dd")
-    : "";
-});
+watch(
+  () => filter.value.projectName,
+  async (value) => {
+    if (value) {
+      await assignedDateOption(value);
+    }
+  },
+  {
+    deep: true,
+  }
+);
+
+const assignedDateOption = async (name) => {
+  const { data: dateList } = await useFetch("/api/survey/list/date", {
+    method: "GET",
+    params: {
+      projectName: name,
+      type: "select",
+    },
+  });
+
+  if (dateList.value.statusCode == 200) {
+    optionDate.value = dateList.value.data;
+  }
+};
 
 const exportReport = async () => {
   try {
@@ -155,13 +142,16 @@ const exportReport = async () => {
           dateOfReport: reportData.value.dateOfReport,
           dataType: filter.value.dataType,
           parkerType: filter.value.parkerType,
-          surveyDateFrom: filter.value.surveyDateFrom,
-          surveyDateTo: filter.value.surveyDateTo,
+          surveyDate: filter.value.surveyDate,
+          surveyTimeFrom: filter.value.surveyTimeFrom,
+          surveyTimeTo: filter.value.surveyTimeTo,
           gracePeriod: filter.value.gracePeriod,
           alsList: reportData.value.alsList,
-          totalAllALSHours: reportData.value.totalAllALSHours,
-          totalVolume: reportData.value.totalVolume,
+          totalVehicle: reportData.value.totalVehicle,
+          gracePeriodVolume: reportData.value.gracePeriodVolume,
+          grandTotalVolume: reportData.value.grandTotalVolume,
           averageALS: reportData.value.averageALS,
+          totalAllALSHours: reportData.value.totalAllALSHours,
         },
       }
     );
@@ -212,6 +202,15 @@ const exportReport = async () => {
         />
 
         <FormKit
+          v-model="filter.surveyDate"
+          :options="optionDate"
+          type="select"
+          label="Survey Date"
+          help="Select Project Name first to get the available dates."
+          validation="required"
+        />
+
+        <!-- <FormKit
           v-model="filter.dataType"
           type="radio"
           label="Data Type"
@@ -259,35 +258,19 @@ const exportReport = async () => {
               value: 'SEASON',
             },
           ]"
-        />
+        /> -->
         <label class="formkit-label formkit-label-global formkit-outer-text">
           Time of Survey
         </label>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <FormKit
-            v-model="filter.surveyDateFrom"
-            type="datetime-local"
-            label="From"
-            :validation="`date_before:${filter.surveyDateTo}|date_after:${computedSurveyDateFrom}`"
-            :validation-messages="{
-              date_after: `Must be the same date as To date ${computedSurveyDateFrom}`,
-            }"
-          />
-          <FormKit
-            v-model="filter.surveyDateTo"
-            type="datetime-local"
-            label="To"
-            :validation="`date_after:${filter.surveyDateFrom}|date_before:${computedSurveyDateTo}`"
-            :validation-messages="{
-              date_before: `Must be the same date as From date ${computedSurveyDateTo}`,
-            }"
-          />
+          <FormKit v-model="filter.surveyTimeFrom" type="time" label="From" />
+          <FormKit v-model="filter.surveyTimeTo" type="time" label="To" />
         </div>
 
         <FormKit
           v-model="filter.gracePeriod"
           type="select"
-          label="Grace Period"
+          label="Grace Period (Hours)"
           :options="gracePeriodOptions"
         />
 
@@ -319,14 +302,26 @@ const exportReport = async () => {
       <template #body>
         <div class="border p-5 rounded-lg bg-secondary text-white">
           <div class="flex items-center gap-3">
+            <span class="text-base font-semibold">Total Vehicle:</span>
+            <span class="text-lg">
+              {{ reportData.totalVehicle }}
+            </span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-base font-semibold">Grace Period Volume:</span>
+            <span class="text-lg">
+              {{ reportData.gracePeriodVolume }}
+            </span>
+          </div>
+          <div class="flex items-center gap-3">
             <span class="text-base font-semibold">Grand Total of Volume:</span>
             <span class="text-lg">
-              {{ reportData.totalVolume }}
+              {{ reportData.grandTotalVolume }}
             </span>
           </div>
 
           <div class="flex items-center gap-3">
-            <span class="text-base font-semibold">Average ALS:</span>
+            <span class="text-base font-semibold">Average ALS (hours):</span>
             <span class="text-lg">
               {{ reportData.averageALS }}
             </span>
@@ -339,9 +334,7 @@ const exportReport = async () => {
           :field="[
             'Length Of Stay',
             'Volume',
-            'Grace Period',
             'Total Average Length Of Stay Volume',
-            'Average Length Of Stay Volume',
           ]"
           :options="{
             variant: 'default',

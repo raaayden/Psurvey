@@ -6,12 +6,14 @@ export default defineEventHandler(async (event) => {
   try {
     const {
       projectName,
+      parkerType,
       dateOfReport,
-      surveyDateFrom,
-      surveyDateTo,
-      totalNoOfEntry,
+      surveyDate,
+      surveyTimeFrom,
+      surveyTimeTo,
       multipleEntryList,
-      noOfEntry,
+      totalVehicle,
+      entryNo,
     } = await readBody(event);
 
     if (!projectName || !dateOfReport)
@@ -22,12 +24,14 @@ export default defineEventHandler(async (event) => {
 
     const base64File = await generatePDFReport(
       projectName,
+      parkerType,
       dateOfReport,
-      surveyDateFrom,
-      surveyDateTo,
-      totalNoOfEntry,
+      surveyDate,
+      surveyTimeFrom,
+      surveyTimeTo,
       multipleEntryList,
-      noOfEntry
+      totalVehicle,
+      entryNo
     );
 
     if (!base64File) {
@@ -53,12 +57,14 @@ export default defineEventHandler(async (event) => {
 
 async function generatePDFReport(
   projectName,
+  parkerType,
   dateOfReport,
-  surveyDateFrom,
-  surveyDateTo,
-  totalNoOfEntry,
+  surveyDate,
+  surveyTimeFrom,
+  surveyTimeTo,
   multipleEntryList,
-  noOfEntry
+  totalVehicle,
+  entryNo
 ) {
   try {
     // Create a folder to save the PDF file
@@ -93,49 +99,6 @@ async function generatePDFReport(
       }
     }
 
-    // Add content to the PDF document
-    doc.font("Helvetica");
-    doc.fontSize(18).text("First Parking", {
-      align: "center",
-    });
-
-    doc.font("Helvetica-Bold");
-    doc.fontSize(18).text("MULTIPLE ENTRY REPORT", {
-      align: "center",
-      underline: true,
-    });
-
-    doc.font("Helvetica");
-    doc.fontSize(18).text("Page 1 of 1", {
-      align: "center",
-    });
-
-    doc.moveDown();
-
-    doc.fontSize(12);
-    addText("Date of Report:", dateOfReport, true);
-    doc.moveDown();
-    addText("Project Name:", projectName, true);
-    doc.moveDown();
-
-    doc.font("Helvetica-Bold").text("Time of Survey", { continued: true });
-    doc.font("Helvetica-Bold").text("   From: ", { continued: true });
-    doc
-      .font("Helvetica")
-      .text(surveyDateFrom ? surveyDateFrom : "-", { continued: true });
-    doc.font("Helvetica-Bold").text("   To: ", { continued: true });
-    doc.font("Helvetica").text(surveyDateTo ? surveyDateTo : "-");
-    doc.moveDown();
-
-    addText("Total No. of Entry:", totalNoOfEntry, true);
-
-    doc.moveDown();
-
-    addText("No. of Entry", noOfEntry, true);
-
-    doc.moveDown();
-    doc.moveDown();
-
     // Get Object Keys for the header
     let header = Object.keys(multipleEntryList[0]);
     header = header.map((element) => camelCaseToTitleCase(element));
@@ -143,17 +106,93 @@ async function generatePDFReport(
     // Get Object Values for the rows
     const rows = multipleEntryList.map((obj) => Object.values(obj));
 
-    // Create a table for Multiple Entry List
-    doc.table(
-      {
-        headers: header,
-        rows: rows,
-      },
-      {
-        prepareHeader: () => doc.font("Helvetica-Bold"),
-        prepareRow: (row, i) => doc.font("Helvetica").fontSize(12),
+    function addTableWithHeaders(header, rows) {
+      const pageSize = 19; // Example number, adjust as needed
+      const numPages = Math.ceil(rows.length / pageSize);
+
+      let pageNumber = 1;
+      let startIndex = 0;
+
+      while (pageNumber <= numPages) {
+        // Add page
+        if (pageNumber > 1) {
+          doc.addPage();
+        }
+
+        // Add header
+        doc.font("Helvetica");
+        doc.fontSize(18).text("First Parking", {
+          align: "center",
+        });
+
+        doc.font("Helvetica-Bold");
+        doc.fontSize(18).text("MULTIPLE ENTRY REPORT", {
+          align: "center",
+          underline: true,
+        });
+
+        doc.font("Helvetica");
+        doc.fontSize(18).text(`Page ${pageNumber} of ${numPages}`, {
+          align: "center",
+        });
+
+        doc.moveDown();
+
+        if (pageNumber === 1) {
+          doc.fontSize(12);
+          addText("Date of Report:", dateOfReport, true);
+          doc.moveDown();
+          addText("Project Name:", projectName, true);
+          doc.moveDown();
+          addText("Survey Date:", surveyDate ? surveyDate : "All", true);
+          doc.moveDown();
+          addText("Parker Type:", parkerType ? parkerType : "All", true);
+          doc.moveDown();
+
+          doc
+            .font("Helvetica-Bold")
+            .text("Time of Survey", { continued: true });
+          doc.font("Helvetica-Bold").text("   From: ", { continued: true });
+          doc
+            .font("Helvetica")
+            .text(surveyTimeFrom ? surveyTimeFrom : "-", { continued: true });
+          doc.font("Helvetica-Bold").text("   To: ", { continued: true });
+          doc.font("Helvetica").text(surveyTimeFrom ? surveyTimeFrom : "-");
+
+          doc.moveDown();
+          addText("No. of Entry", entryNo ? entryNo : "-", true);
+
+          doc.moveDown();
+          addText("Total Vehicle:", totalVehicle ? totalVehicle : 0, true);
+
+          doc.moveDown();
+          doc.moveDown();
+        }
+
+        // Calculate endIndex for current page
+        const endIndex = Math.min(startIndex + pageSize, rows.length);
+
+        // Get data for current page
+        const pageRows = rows.slice(startIndex, endIndex);
+
+        // Draw table
+        doc.table(
+          {
+            headers: header,
+            rows: pageRows,
+          },
+          {
+            prepareHeader: () => doc.font("Helvetica-Bold"),
+            prepareRow: (row, i) => doc.font("Helvetica").fontSize(12),
+          }
+        );
+        // Update startIndex and pageNumber
+        startIndex += pageSize;
+        pageNumber++;
       }
-    );
+    }
+
+    addTableWithHeaders(header, rows);
 
     // End the PDF document
     doc.end();

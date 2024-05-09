@@ -2,8 +2,15 @@ import { DateTime } from "luxon";
 
 export default defineEventHandler(async (event) => {
   try {
-    const { projectName, dataType, parkerType, surveyDateFrom, surveyDateTo } =
-      getQuery(event);
+    const {
+      projectName,
+      dataType,
+      parkerType,
+      surveyDate,
+      surveyTimeFrom,
+      surveyTimeTo,
+      entryNo,
+    } = getQuery(event);
 
     if (!projectName) {
       return {
@@ -31,14 +38,49 @@ export default defineEventHandler(async (event) => {
 
     const dateOfReport = DateTime.now().toFormat("dd/MM/yyyy");
 
+    let combinedDateTimeFrom = null;
+    let combinedDateTimeTo = null;
+
+    if (surveyDate) {
+      if (surveyTimeFrom) {
+        // Combine surveyDate and surveyTimeFrom  because surveyDate format is yyyy-MM-dd and surveyTimeFrom format is HH:mm
+        combinedDateTimeFrom = DateTime.fromFormat(
+          surveyDate + " " + surveyTimeFrom,
+          "yyyy-MM-dd HH:mm"
+        );
+      }
+
+      if (surveyTimeTo) {
+        // Combine surveyDate and surveyTimeTo  because surveyDate format is yyyy-MM-dd and surveyTimeTo format is HH:mm
+        combinedDateTimeTo = DateTime.fromFormat(
+          surveyDate + " " + surveyTimeTo,
+          "yyyy-MM-dd HH:mm"
+        );
+      }
+    }
+
     const getSurveyList = await prisma.survey_list.findMany({
       where: {
         project_id: project.project_id,
         project_parker_type: parkerType ? parkerType : undefined,
-        vehicle_timein: {
-          gte: surveyDateFrom ? DateTime.fromISO(surveyDateFrom) : undefined,
-          lte: surveyDateTo ? DateTime.fromISO(surveyDateTo) : undefined,
-        },
+        ...(surveyDate && {
+          vehicle_timein: {
+            gte: DateTime.fromISO(surveyDate).startOf("day"),
+            lte: DateTime.fromISO(surveyDate).endOf("day"),
+          },
+        }),
+        // Conditionally include vehicle_timein filter
+        ...(combinedDateTimeFrom && {
+          vehicle_timein: {
+            gte: combinedDateTimeFrom.toISO(),
+          },
+        }),
+        // Conditionally include vehicle_timeout filter
+        ...(combinedDateTimeTo && {
+          vehicle_timeout: {
+            lte: combinedDateTimeTo.toISO(),
+          },
+        }),
       },
       select: {
         survey_list_id: true,
@@ -49,11 +91,17 @@ export default defineEventHandler(async (event) => {
         },
         vehicle_timein: true,
       },
+      orderBy: {
+        vehicle: {
+          vehicle_plate_number: "asc",
+        },
+      },
     });
 
     console.log("getSurveyList: ", getSurveyList);
+    console.log("getSurveyList.length: ", getSurveyList.length);
 
-    let totalNoOfEntry = 0;
+    let totalVehicle = 0;
 
     let data = [];
     for (let i = 0; i < getSurveyList.length; i++) {
@@ -77,36 +125,38 @@ export default defineEventHandler(async (event) => {
           entryCount: 1,
         });
       }
+    }
 
-      totalNoOfEntry++;
+    // Filter if entryNo is provided
+    if (entryNo) {
+      data = data.filter((d) => d.entryCount == entryNo);
     }
 
     // Filter only multiple entry based on rule if dataType is ADJUSTED
-    let noOfEntry = 0;
     if (dataType == "ADJUSTED") {
-      const getMultipleEntryRule = await prisma.parking_season_rule.findFirst({
+      const getParkingSeason = await prisma.parking_season.findMany({
         where: {
-          parking_season_rule_id: 1,
+          project_id: project.project_id,
+          season_status: "ACTIVE",
         },
         select: {
-          multiple_entry_period: true,
+          vehicle: {
+            select: {
+              vehicle_plate_number: true,
+            },
+          },
         },
       });
 
-      if (!getMultipleEntryRule) {
-        return {
-          statusCode: 404,
-          message: "Multiple Entry Rule not found",
-        };
+      if (getParkingSeason.length > 0) {
+        const parkingSeasonData = getParkingSeason.map(
+          (data) => data.vehicle.vehicle_plate_number
+        );
+
+        data = data.filter((d) => parkingSeasonData.includes(d.vehicleNo));
+      } else {
+        data = [];
       }
-
-      noOfEntry = getMultipleEntryRule.multiple_entry_period;
-
-      // Filter only multiple entry
-      data = data.filter((d) => d.entryCount >= noOfEntry);
-
-      // Recalculate totalNoOfEntry
-      totalNoOfEntry = data.reduce((acc, curr) => acc + curr.entryCount, 0);
     }
 
     return {
@@ -114,13 +164,15 @@ export default defineEventHandler(async (event) => {
       message: "Success",
       data: {
         dateOfReport,
+        projectID: project.project_id,
         projectName,
         dataType,
         parkerType,
-        surveyDateFrom,
-        surveyDateTo,
-        totalNoOfEntry,
-        noOfEntry,
+        surveyDate,
+        surveyTimeFrom,
+        surveyTimeTo,
+        entryNo,
+        totalVehicle: data.length,
         multipleEntryList: data,
       },
     };
