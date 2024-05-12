@@ -1,14 +1,16 @@
 import PDFTable from "pdfkit-table";
 import fs from "fs";
 import path from "path";
+import { DateTime } from "luxon";
 
 export default defineEventHandler(async (event) => {
   try {
     const {
       projectName,
       dateOfReport,
-      surveyDateFrom,
-      surveyDateTo,
+      surveyDate,
+      surveyTimeFrom,
+      surveyTimeTo,
       vmbuList,
       carTotalEntry,
       carTotalExit,
@@ -27,8 +29,9 @@ export default defineEventHandler(async (event) => {
     const base64File = await generatePDFReport(
       projectName,
       dateOfReport,
-      surveyDateFrom,
-      surveyDateTo,
+      surveyDate,
+      surveyTimeFrom,
+      surveyTimeTo,
       vmbuList,
       carTotalEntry,
       carTotalExit,
@@ -60,8 +63,9 @@ export default defineEventHandler(async (event) => {
 async function generatePDFReport(
   projectName,
   dateOfReport,
-  surveyDateFrom,
-  surveyDateTo,
+  surveyDate,
+  surveyTimeFrom,
+  surveyTimeTo,
   vmbuList,
   carTotalEntry,
   carTotalExit,
@@ -113,7 +117,7 @@ async function generatePDFReport(
     const rows = vmbuList.map((obj) => Object.values(obj));
 
     function addTableWithHeaders(header, rows) {
-      let pageSize = 18; // Example number, adjust as needed
+      let pageSize = 17; // Example number, adjust as needed
       const numPages = Math.ceil(rows.length / pageSize);
 
       let pageNumber = 1;
@@ -151,15 +155,20 @@ async function generatePDFReport(
           addText("Project Name:", projectName, true);
           doc.moveDown();
 
+          if (surveyDate)
+            surveyDate = DateTime.fromISO(surveyDate).toFormat("dd/MM/yyyy");
+          addText("Date of Survey:", surveyDate ? surveyDate : "-", true);
+          doc.moveDown();
+
           doc
             .font("Helvetica-Bold")
             .text("Time of Survey", { continued: true });
           doc.font("Helvetica-Bold").text("   From: ", { continued: true });
           doc
             .font("Helvetica")
-            .text(surveyDateFrom ? surveyDateFrom : "-", { continued: true });
+            .text(surveyTimeFrom ? surveyTimeFrom : "-", { continued: true });
           doc.font("Helvetica-Bold").text("   To: ", { continued: true });
-          doc.font("Helvetica").text(surveyDateTo ? surveyDateTo : "-");
+          doc.font("Helvetica").text(surveyTimeTo ? surveyTimeTo : "-");
 
           doc.moveDown();
           doc.moveDown();

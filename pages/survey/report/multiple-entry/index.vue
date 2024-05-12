@@ -27,6 +27,8 @@ const filter = ref({
 
 const projectOptions = ref(null);
 
+const selectedVehicleNo = ref([]);
+
 const { data: projectList } = await useFetch(
   "/api/survey/report/filter/project-list",
   {
@@ -67,7 +69,12 @@ if (matchingReport.value.statusCode == 200) {
   showReport.value = true;
 }
 
-const optionDate = ref([]);
+const optionDate = ref([
+  {
+    label: "Select Project Name to get the available dates",
+    value: "",
+  },
+]);
 
 onMounted(async () => {
   if (filter.value.projectName) {
@@ -97,6 +104,23 @@ const assignedDateOption = async (name) => {
 
   if (dateList.value.statusCode == 200) {
     optionDate.value = dateList.value.data;
+  } else {
+    optionDate.value = [
+      {
+        label: "No Date Available",
+        value: "",
+      },
+    ];
+  }
+};
+
+const assignVehicleNo = (vehicleNo) => {
+  if (selectedVehicleNo.value.includes(vehicleNo)) {
+    selectedVehicleNo.value = selectedVehicleNo.value.filter(
+      (item) => item !== vehicleNo
+    );
+  } else {
+    selectedVehicleNo.value.push(vehicleNo);
   }
 };
 
@@ -163,7 +187,7 @@ const exportReport = async () => {
   }
 };
 
-const addSeasonParking = async (vehicleNo) => {
+const addSeasonParking = async (vehicleNoList) => {
   try {
     const { data } = await useFetch(
       "/api/survey/parking-season/add-vehicle/add",
@@ -171,7 +195,7 @@ const addSeasonParking = async (vehicleNo) => {
         method: "POST",
         body: {
           projectID: reportData.value.projectID,
-          vehicleList: [vehicleNo],
+          vehicleList: vehicleNoList,
         },
       }
     );
@@ -350,15 +374,55 @@ const addSeasonParking = async (vehicleNo) => {
               }}</span>
             </div>
 
+            <div class="flex justify-end my-4 gap-2">
+              <rs-button
+                variant="primary"
+                @click="addSeasonParking(selectedVehicleNo)"
+                :disabled="selectedVehicleNo.length === 0"
+              >
+                <Icon name="ph:plus-circle" class="mr-1 !w-5 !h-5" />
+                Add Selected Vehicle
+              </rs-button>
+
+              <rs-button
+                variant="secondary"
+                @click="
+                  addSeasonParking(
+                    reportData.multipleEntryList.map((item) => item.vehicleNo)
+                  )
+                "
+              >
+                <Icon name="ph:plus-circle" class="mr-1 !w-5 !h-5" />
+                Add All Vehicle
+              </rs-button>
+
+              <rs-button
+                variant="primary-outline"
+                @click="selectedVehicleNo = []"
+              >
+                Reset
+              </rs-button>
+            </div>
+
             <rs-table
               v-if="
                 reportData.multipleEntryList &&
                 reportData.multipleEntryList.length > 0
               "
-              :field="['vehicleNo', 'entryCount', 'action']"
+              :field="['select', 'vehicleNo', 'entryCount']"
               :data="reportData.multipleEntryList"
             >
-              <template v-slot:action="data">
+              <template v-slot:select="data">
+                <div class="flex items-center">
+                  <input
+                    type="checkbox"
+                    class="w-5 h-5 accent-primary text-primary bg-gray-100 border-gray-200 rounded-lg focus:ring-primary cursor-pointer"
+                    :checked="selectedVehicleNo.includes(data.value.vehicleNo)"
+                    @change="assignVehicleNo(data.value.vehicleNo)"
+                  />
+                </div>
+              </template>
+              <!-- <template v-slot:action="data">
                 <rs-button
                   variant="primary-outline"
                   @click="addSeasonParking(data.value.vehicleNo)"
@@ -366,7 +430,7 @@ const addSeasonParking = async (vehicleNo) => {
                   <Icon name="ph:plus-circle" class="mr-1 !w-5 !h-5" />
                   Add Season Parking
                 </rs-button>
-              </template>
+              </template> -->
             </rs-table>
           </div>
         </div>

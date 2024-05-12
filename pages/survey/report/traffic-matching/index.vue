@@ -66,7 +66,12 @@ if (matchingReport.value.statusCode == 200) {
   reportData.value = [];
 }
 
-const optionDate = ref([]);
+const optionDate = ref([
+  {
+    label: "Select Project Name to get the available dates",
+    value: "",
+  },
+]);
 
 onMounted(async () => {
   if (filter.value.projectName) {
@@ -96,6 +101,13 @@ const assignedDateOption = async (name) => {
 
   if (dateList.value.statusCode == 200) {
     optionDate.value = dateList.value.data;
+  } else {
+    optionDate.value = [
+      {
+        label: "No Date Available",
+        value: "",
+      },
+    ];
   }
 };
 

@@ -1,6 +1,7 @@
 import PDFTable from "pdfkit-table";
 import fs from "fs";
 import path from "path";
+import { DateTime } from "luxon";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -155,6 +156,9 @@ async function generatePDFReport(
           doc.moveDown();
           addText("Project Name:", projectName, true);
           doc.moveDown();
+
+          if (surveyDate)
+            surveyDate = DateTime.fromISO(surveyDate).toFormat("dd/MM/yyyy");
           addText("Date of Survey:", surveyDate, true);
           doc.moveDown();
 
@@ -166,10 +170,17 @@ async function generatePDFReport(
             .font("Helvetica")
             .text(surveyTimeFrom ? surveyTimeFrom : "-", { continued: true });
           doc.font("Helvetica-Bold").text("   To: ", { continued: true });
-          doc.font("Helvetica").text(surveyTimeFrom ? surveyTimeFrom : "-");
+          doc.font("Helvetica").text(surveyTimeTo ? surveyTimeTo : "-");
           doc.moveDown();
 
           addText("Min Grace Period:", gracePeriod ? gracePeriod : "-", true);
+          doc.moveDown();
+
+          addText(
+            "Total Vehicle:",
+            totalVehicle ? totalVehicle.toString() : "-",
+            true
+          );
           doc.moveDown();
 
           addText(

@@ -186,8 +186,10 @@ export default defineEventHandler(async (event) => {
       totalAllALSHours += durationInHours;
     }
 
+    console.log("totalAllALSHours: ", totalAllALSHours);
+
     if (totalAllALSHours > 0 && gracePeriodVolume > 0)
-      averageALS = totalAllALSHours / gracePeriodVolume;
+      averageALS = totalAllALSHours.toFixed(2) / gracePeriodVolume;
 
     return {
       statusCode: 200,

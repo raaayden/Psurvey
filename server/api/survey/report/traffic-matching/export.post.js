@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
+import { DateTime } from "luxon";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -135,7 +136,10 @@ async function generatePDFReport(
     doc.moveDown();
     addText("Project Name:", projectName, true);
     doc.moveDown();
-    addText("Survey Date:", surveyDate ? surveyDate : "All", true);
+
+    if (surveyDate)
+      surveyDate = DateTime.fromISO(surveyDate).toFormat("dd/MM/yyyy");
+    addText("Date of Survey:", surveyDate ? surveyDate : "All", true);
     doc.moveDown();
     addText("Parker Type:", parkerType ? parkerType : "All", true);
     doc.moveDown();
@@ -146,7 +150,7 @@ async function generatePDFReport(
       .font("Helvetica")
       .text(surveyTimeFrom ? surveyTimeFrom : "-", { continued: true });
     doc.font("Helvetica-Bold").text("   To: ", { continued: true });
-    doc.font("Helvetica").text(surveyTimeFrom ? surveyTimeFrom : "-");
+    doc.font("Helvetica").text(surveyTimeTo ? surveyTimeTo : "-");
 
     doc.moveDown();
     doc.moveDown();

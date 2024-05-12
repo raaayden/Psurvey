@@ -52,11 +52,24 @@ if (surveyList.value.statusCode == 200) {
   fileData.value = surveyList.value.data;
 }
 
-const optionDate = ref([]);
+const optionDate = ref([
+  {
+    label: "Select Project Name to get the available dates",
+    value: "",
+  },
+]);
+
+const optionEntryExitCode = ref([
+  {
+    label: "Select Project Name to get the available entry exit code",
+    value: "",
+  },
+]);
 
 onMounted(async () => {
   if (filter.value.projectID) {
     await assignedDateOption(filter.value.projectID);
+    await assignedEntryExitCodeOption(filter.value.projectID);
   }
 });
 
@@ -65,6 +78,7 @@ watch(
   async (value) => {
     if (value) {
       await assignedDateOption(value);
+      await assignedEntryExitCodeOption(value);
     }
   },
   {
@@ -82,6 +96,37 @@ const assignedDateOption = async (projectId) => {
 
   if (dateList.value.statusCode == 200) {
     optionDate.value = dateList.value.data;
+  } else {
+    optionDate.value = [
+      {
+        label: "No Date Available",
+        value: "",
+      },
+    ];
+  }
+};
+
+const assignedEntryExitCodeOption = async (projectId) => {
+  const { data: entryExitCodeList } = await useFetch(
+    "/api/survey/list/entry-exit-code",
+    {
+      method: "GET",
+      params: {
+        projectID: projectId,
+        type: "select",
+      },
+    }
+  );
+
+  if (entryExitCodeList.value.statusCode == 200) {
+    optionEntryExitCode.value = entryExitCodeList.value.data;
+  } else {
+    optionEntryExitCode.value = [
+      {
+        label: "No Entry Exit Code Available",
+        value: "",
+      },
+    ];
   }
 };
 
@@ -122,8 +167,10 @@ const submitFilter = () => {
 
           <FormKit
             v-model="filter.entryExitCode"
-            type="text"
+            :options="optionEntryExitCode"
+            type="select"
             label="Entry Exit Code"
+            help="Select Project Name first to get the available entry exit code."
           />
 
           <rs-button btn-type="submit"> Fetch Data </rs-button>
