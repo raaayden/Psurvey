@@ -119,7 +119,7 @@ async function generatePDFReport(
     const rows = alsList.map((obj) => Object.values(obj));
 
     function addTableWithHeaders(header, rows) {
-      const pageSize = 19; // Example number, adjust as needed
+      const pageSize = 18; // Example number, adjust as needed
       const numPages = Math.ceil(rows.length / pageSize);
 
       let pageNumber = 1;
