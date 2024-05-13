@@ -63,10 +63,20 @@ export default defineEventHandler(async (event) => {
         project_id: project.project_id,
         project_parker_type: parkerType ? parkerType : undefined,
         ...(surveyDate && {
-          vehicle_timein: {
-            gte: DateTime.fromISO(surveyDate).startOf("day"),
-            lte: DateTime.fromISO(surveyDate).endOf("day"),
-          },
+          OR: [
+            {
+              vehicle_timein: {
+                gte: DateTime.fromISO(surveyDate).startOf("day"),
+                lte: DateTime.fromISO(surveyDate).endOf("day"),
+              },
+            },
+            {
+              vehicle_timeout: {
+                gte: DateTime.fromISO(surveyDate).startOf("day"),
+                lte: DateTime.fromISO(surveyDate).endOf("day"),
+              },
+            },
+          ],
         }),
         // Conditionally include vehicle_timein filter
         ...(combinedDateTimeFrom && {

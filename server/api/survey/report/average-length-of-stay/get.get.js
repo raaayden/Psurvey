@@ -64,10 +64,20 @@ export default defineEventHandler(async (event) => {
         project_id: project.project_id,
         project_parker_type: parkerType ? parkerType : undefined,
         ...(surveyDate && {
-          vehicle_timein: {
-            gte: DateTime.fromISO(surveyDate).startOf("day"),
-            lte: DateTime.fromISO(surveyDate).endOf("day"),
-          },
+          OR: [
+            {
+              vehicle_timein: {
+                gte: DateTime.fromISO(surveyDate).startOf("day"),
+                lte: DateTime.fromISO(surveyDate).endOf("day"),
+              },
+            },
+            {
+              vehicle_timeout: {
+                gte: DateTime.fromISO(surveyDate).startOf("day"),
+                lte: DateTime.fromISO(surveyDate).endOf("day"),
+              },
+            },
+          ],
         }),
         // Conditionally include vehicle_timein filter
         ...(combinedDateTimeFrom && {
@@ -117,7 +127,8 @@ export default defineEventHandler(async (event) => {
 
     // Convert grace period of minutes to hh:mm format
     if (gracePeriod) {
-      const gracePeriodInHours = gracePeriod / 60;
+      // Add 0.5 to grace period to round up to the nearest half hour
+      const gracePeriodInHours = gracePeriod / 60 + 0.5;
       convertedGracePeriod = convertDecimalToHoursMinutes(gracePeriodInHours);
     }
 
@@ -159,7 +170,7 @@ export default defineEventHandler(async (event) => {
       // Check if duration is more than grace period
       if (convertedGracePeriod) {
         if (
-          durationInHours >=
+          parseFloat(durationInHours).toFixed(2) <
           convertHoursMinutesToDecimal(convertedGracePeriod).toFixed(2)
         ) {
           continue;

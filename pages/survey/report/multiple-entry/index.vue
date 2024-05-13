@@ -403,35 +403,29 @@ const addSeasonParking = async (vehicleNoList) => {
                 Reset
               </rs-button>
             </div>
-
-            <rs-table
-              v-if="
-                reportData.multipleEntryList &&
-                reportData.multipleEntryList.length > 0
-              "
-              :field="['select', 'vehicleNo', 'entryCount']"
-              :data="reportData.multipleEntryList"
-            >
-              <template v-slot:select="data">
-                <div class="flex items-center">
-                  <input
-                    type="checkbox"
-                    class="w-5 h-5 accent-primary text-primary bg-gray-100 border-gray-200 rounded-lg focus:ring-primary cursor-pointer"
-                    :checked="selectedVehicleNo.includes(data.value.vehicleNo)"
-                    @change="assignVehicleNo(data.value.vehicleNo)"
-                  />
-                </div>
-              </template>
-              <!-- <template v-slot:action="data">
-                <rs-button
-                  variant="primary-outline"
-                  @click="addSeasonParking(data.value.vehicleNo)"
-                >
-                  <Icon name="ph:plus-circle" class="mr-1 !w-5 !h-5" />
-                  Add Season Parking
-                </rs-button>
-              </template> -->
-            </rs-table>
+            <NuxtScrollbar style="max-height: 580px">
+              <rs-table
+                v-if="
+                  reportData.multipleEntryList &&
+                  reportData.multipleEntryList.length > 0
+                "
+                :field="['select', 'vehicleNo', 'entryCount']"
+                :data="reportData.multipleEntryList"
+              >
+                <template v-slot:select="data">
+                  <div class="flex items-center">
+                    <input
+                      type="checkbox"
+                      class="w-5 h-5 accent-primary text-primary bg-gray-100 border-gray-200 rounded-lg focus:ring-primary cursor-pointer"
+                      :checked="
+                        selectedVehicleNo.includes(data.value.vehicleNo)
+                      "
+                      @change="assignVehicleNo(data.value.vehicleNo)"
+                    />
+                  </div>
+                </template>
+              </rs-table>
+            </NuxtScrollbar>
           </div>
         </div>
       </template>

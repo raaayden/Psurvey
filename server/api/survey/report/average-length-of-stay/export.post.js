@@ -173,7 +173,7 @@ async function generatePDFReport(
           doc.font("Helvetica").text(surveyTimeTo ? surveyTimeTo : "-");
           doc.moveDown();
 
-          addText("Min Grace Period:", gracePeriod ? gracePeriod : "-", true);
+          addText("Min Grace Period:", gracePeriod ? `${gracePeriod} Minute` : "-", true);
           doc.moveDown();
 
           addText(

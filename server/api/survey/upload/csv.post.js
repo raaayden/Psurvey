@@ -150,6 +150,42 @@ export default defineEventHandler(async (event) => {
           errorMessage = "Failed to insert survey data into the database";
           return;
         }
+      } else {
+        // Update the survey data in the database
+        const updateSurvey = await prisma.survey_list.update({
+          where: {
+            survey_id: survey.id,
+          },
+          data: {
+            vehicle_timein: DateTime.fromISO(survey.time_in.replace(" ", "T")),
+            vehicle_timeout: DateTime.fromISO(
+              survey.time_out.replace(" ", "T")
+            ),
+            project_name: projectName,
+            project_eecode: survey.entry_exit_code,
+            project_parker_type: survey.parker_type,
+            project_surveyor_name: survey.surveyor,
+            data_status: "RE-UPLOADED",
+            updated_by: "SYSTEM",
+            updated_at: DateTime.now(),
+            project: {
+              connect: {
+                project_name: projectName,
+              },
+            },
+            vehicle: {
+              connect: {
+                vehicle_plate_number: parseInt(survey.car_plate_number),
+              },
+            },
+          },
+        });
+
+        if (!updateSurvey) {
+          statusCode = 500;
+          errorMessage = "Failed to update survey data in the database";
+          return;
+        }
       }
     }
 
