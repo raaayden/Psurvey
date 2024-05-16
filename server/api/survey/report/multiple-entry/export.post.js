@@ -100,12 +100,18 @@ async function generatePDFReport(
       }
     }
 
+    // Remove object named "check" from the list
+    let remapMultipleEntryList = multipleEntryList.map((entry) => {
+      delete entry.check;
+      return entry;
+    });
+
     // Get Object Keys for the header
-    let header = Object.keys(multipleEntryList[0]);
+    let header = Object.keys(remapMultipleEntryList[0]);
     header = header.map((element) => camelCaseToTitleCase(element));
 
     // Get Object Values for the rows
-    const rows = multipleEntryList.map((obj) => Object.values(obj));
+    const rows = remapMultipleEntryList.map((obj) => Object.values(obj));
 
     function addTableWithHeaders(header, rows) {
       const pageSize = 15; // Example number, adjust as needed
