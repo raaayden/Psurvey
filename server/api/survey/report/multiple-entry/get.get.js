@@ -131,7 +131,6 @@ export default defineEventHandler(async (event) => {
         existingData.entryCount++;
       } else {
         data.push({
-          check: "",
           vehicleNo,
           entryCount: 1,
         });

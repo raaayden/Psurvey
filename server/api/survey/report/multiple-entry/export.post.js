@@ -108,7 +108,7 @@ async function generatePDFReport(
     const rows = multipleEntryList.map((obj) => Object.values(obj));
 
     function addTableWithHeaders(header, rows) {
-      const pageSize = 19; // Example number, adjust as needed
+      const pageSize = 15; // Example number, adjust as needed
       const numPages = Math.ceil(rows.length / pageSize);
 
       let pageNumber = 1;
@@ -186,7 +186,7 @@ async function generatePDFReport(
             rows: pageRows,
           },
           {
-            prepareHeader: () => doc.font("Helvetica-Bold"),
+            prepareHeader: () => doc.font("Helvetica-Bold").fontSize(12),
             prepareRow: (row, i) => doc.font("Helvetica").fontSize(12),
           }
         );

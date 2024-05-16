@@ -333,7 +333,7 @@ const exportReport = async () => {
           </div>
 
           <div class="flex items-center gap-3">
-            <span class="text-base font-semibold">Average ALS (hours):</span>
+            <span class="text-base font-semibold">Average ALS (hh:mm):</span>
             <span class="text-lg">
               {{ reportData.averageALS }}
             </span>

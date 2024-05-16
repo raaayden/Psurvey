@@ -115,11 +115,17 @@ async function generatePDFReport(
     let header = Object.keys(alsList[0]);
     header = header.map((element) => camelCaseToTitleCase(element));
 
+    // Search from header for total ALS Hours and change to total ALS Hours (hh:mm)
+    const index = header.indexOf("Total ALS Hours");
+    if (index !== -1) {
+      header[index] = "Total ALS Hours (hh:mm)";
+    }
+
     // Get Object Values for the rows
     const rows = alsList.map((obj) => Object.values(obj));
 
     function addTableWithHeaders(header, rows) {
-      const pageSize = 18; // Example number, adjust as needed
+      const pageSize = 17; // Example number, adjust as needed
       const numPages = Math.ceil(rows.length / pageSize);
 
       let pageNumber = 1;
@@ -173,7 +179,11 @@ async function generatePDFReport(
           doc.font("Helvetica").text(surveyTimeTo ? surveyTimeTo : "-");
           doc.moveDown();
 
-          addText("Min Grace Period:", gracePeriod ? `${gracePeriod} Minute` : "-", true);
+          addText(
+            "Min Grace Period:",
+            gracePeriod ? `${gracePeriod} Minute` : "-",
+            true
+          );
           doc.moveDown();
 
           addText(
@@ -222,10 +232,10 @@ async function generatePDFReport(
     addTableWithHeaders(header, rows);
 
     // Add line horizontally
-    doc.moveTo(50, 325).lineTo(550, 325).stroke();
+    doc.moveTo(50, 385).lineTo(550, 385).stroke();
     doc.font("Helvetica-Bold");
-    doc.text(grandTotalVolume, 227, 335);
-    doc.text(totalAllALSHours + " Hrs", 387, 335);
+    doc.text(grandTotalVolume, 227, 395);
+    doc.text(totalAllALSHours + " Hrs", 387, 395);
 
     doc.moveDown();
     doc.moveDown();
@@ -234,7 +244,7 @@ async function generatePDFReport(
     doc.font("Helvetica").text(grandTotalVolume);
 
     doc.moveDown();
-    doc.font("Helvetica-Bold").text("Average ALS: ");
+    doc.font("Helvetica-Bold").text("Average ALS (hh:mm): ");
     doc.font("Helvetica").text(averageALS + " Hrs");
 
     doc.end();

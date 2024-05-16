@@ -169,13 +169,28 @@ export default defineEventHandler(async (event) => {
             updated_by: "SYSTEM",
             updated_at: DateTime.now(),
             project: {
-              connect: {
-                project_name: projectName,
+              connectOrCreate: {
+                where: {
+                  project_name: projectName,
+                },
+                create: {
+                  project_name: projectName,
+                  created_by: "SYSTEM",
+                  created_at: DateTime.now(),
+                },
               },
             },
             vehicle: {
-              connect: {
-                vehicle_plate_number: parseInt(survey.car_plate_number),
+              connectOrCreate: {
+                where: {
+                  vehicle_plate_number: parseInt(survey.car_plate_number),
+                },
+                create: {
+                  vehicle_plate_number: parseInt(survey.car_plate_number),
+                  vehicle_type: "CAR",
+                  created_by: "SYSTEM",
+                  created_at: DateTime.now(),
+                },
               },
             },
           },
@@ -191,11 +206,12 @@ export default defineEventHandler(async (event) => {
 
     // Select the last file in the fileList
     const getProject = await prisma.project.findFirst({
+      where: {
+        project_id: projectID ? parseInt(projectID) : undefined,
+        project_name: projectName || undefined,
+      },
       select: {
         project_id: true,
-      },
-      orderBy: {
-        created_at: "desc",
       },
     });
 

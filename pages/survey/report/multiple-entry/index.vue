@@ -1,4 +1,6 @@
 <script setup>
+import { DateTime } from "luxon";
+
 definePageMeta({
   title: "Multiple Entry",
 });
@@ -345,7 +347,11 @@ const addSeasonParking = async (vehicleNoList) => {
               <span class="col-span-4">{{ reportData.projectName }}</span>
               <h6>Survey Date:</h6>
               <span class="col-span-4">{{
-                reportData.surveyDate ? reportData.surveyDate : "All"
+                reportData.surveyDate
+                  ? DateTime.fromISO(reportData.surveyDate).toFormat(
+                      "dd/MM/yyyy"
+                    )
+                  : "All"
               }}</span>
               <h6>Parker Type:</h6>
               <span class="col-span-4">{{
@@ -411,6 +417,7 @@ const addSeasonParking = async (vehicleNoList) => {
                 "
                 :field="['select', 'vehicleNo', 'entryCount']"
                 :data="reportData.multipleEntryList"
+                advanced
               >
                 <template v-slot:select="data">
                   <div class="flex items-center">

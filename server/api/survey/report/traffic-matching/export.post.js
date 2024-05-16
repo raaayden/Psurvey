@@ -137,8 +137,6 @@ async function generatePDFReport(
     addText("Project Name:", projectName, true);
     doc.moveDown();
 
-    if (surveyDate)
-      surveyDate = DateTime.fromISO(surveyDate).toFormat("dd/MM/yyyy");
     addText("Date of Survey:", surveyDate ? surveyDate : "All", true);
     doc.moveDown();
     addText("Parker Type:", parkerType ? parkerType : "All", true);
