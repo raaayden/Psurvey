@@ -67,30 +67,40 @@ export default defineEventHandler(async (event) => {
           OR: [
             {
               vehicle_timein: {
-                gte: DateTime.fromISO(surveyDate).startOf("day"),
-                lte: DateTime.fromISO(surveyDate).endOf("day"),
+                gte: combinedDateTimeFrom
+                  ? combinedDateTimeFrom.toISO()
+                  : DateTime.fromISO(surveyDate).startOf("day"),
+                lte: combinedDateTimeTo
+                  ? undefined
+                  : DateTime.fromISO(surveyDate).endOf("day"),
               },
             },
             {
               vehicle_timeout: {
-                gte: DateTime.fromISO(surveyDate).startOf("day"),
-                lte: DateTime.fromISO(surveyDate).endOf("day"),
+                gte: combinedDateTimeTo
+                  ? undefined
+                  : DateTime.fromISO(surveyDate).startOf("day"),
+                lte: combinedDateTimeTo
+                  ? combinedDateTimeTo.toISO()
+                  : DateTime.fromISO(surveyDate).endOf("day"),
               },
             },
           ],
         }),
         // Conditionally include vehicle_timein filter
-        ...(combinedDateTimeFrom && {
-          vehicle_timein: {
-            gte: combinedDateTimeFrom.toISO(),
-          },
-        }),
+        ...(!surveyDate &&
+          combinedDateTimeFrom && {
+            vehicle_timein: {
+              gte: combinedDateTimeFrom.toISO(),
+            },
+          }),
         // Conditionally include vehicle_timeout filter
-        ...(combinedDateTimeTo && {
-          vehicle_timeout: {
-            lte: combinedDateTimeTo.toISO(),
-          },
-        }),
+        ...(!surveyDate &&
+          combinedDateTimeTo && {
+            vehicle_timeout: {
+              lte: combinedDateTimeTo.toISO(),
+            },
+          }),
       },
       select: {
         survey_list_id: true,
