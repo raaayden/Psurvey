@@ -128,8 +128,8 @@ export default defineEventHandler(async (event) => {
       let toTime = lookup.value.split("-")[1];
 
       // Convert fromTime and toTime to 12 hours format
-      fromTime = convert24Hourto12HourFormat(fromTime);
-      toTime = convert24Hourto12HourFormat(toTime);
+      // fromTime = convert24Hourto12HourFormat(fromTime);
+      // toTime = convert24Hourto12HourFormat(toTime);
 
       data.push({
         no: index + 1,
@@ -142,6 +142,9 @@ export default defineEventHandler(async (event) => {
       });
     });
 
+    // console.log("=============");
+    // console.log("data", data);
+
     let carTotalIn = 0;
     let carTotalEntry = 0;
     let carTotalExit = 0;
@@ -151,8 +154,8 @@ export default defineEventHandler(async (event) => {
       value: 0,
     };
     let minTimeCarInPark = {
-      fromTime: "11:00:00 PM",
-      toTime: "11:29:00 PM",
+      fromTime: "11:00",
+      toTime: "11:29",
       value: 0,
     };
 
@@ -160,12 +163,11 @@ export default defineEventHandler(async (event) => {
       const lookup = data[i];
 
       // convert to 24 hours format
-      const fromTime = DateTime.fromFormat(
-        lookup.fromTime,
-        "h:mm:ss a"
-      ).toFormat("HH:mm:ss");
-      const toTime = DateTime.fromFormat(lookup.toTime, "h:mm:ss a").toFormat(
-        "HH:mm:ss"
+      const fromTime = DateTime.fromFormat(lookup.fromTime, "HH:mm").toFormat(
+        "HH:mm"
+      );
+      const toTime = DateTime.fromFormat(lookup.toTime, "HH:mm").toFormat(
+        "HH:mm"
       );
 
       // let toTime = lookup.toTime.split(" ")[0];
@@ -183,14 +185,12 @@ export default defineEventHandler(async (event) => {
             "dd/MM/yyyy"
           );
 
-        console.log("date 1", date);
-
         const convertTimeIn = DateTime.fromJSDate(
           survey.vehicle_timein
-        ).toFormat("HH:mm:ss");
+        ).toFormat("HH:mm");
         const convertTimeOut = DateTime.fromJSDate(
           survey.vehicle_timeout
-        ).toFormat("HH:mm:ss");
+        ).toFormat("HH:mm");
 
         carInPark = carTotalIn;
 
@@ -201,14 +201,22 @@ export default defineEventHandler(async (event) => {
           carTotalEntry += 1;
 
           if (carInPark >= maxTimeCarInPark.value) {
+            // maxTimeCarInPark.fromTime = DateTime.fromFormat(
+            //   fromTime,
+            //   "HH:mm:ss"
+            // ).toFormat("h:mm a");
+            // maxTimeCarInPark.toTime = DateTime.fromFormat(
+            //   toTime,
+            //   "HH:mm:ss"
+            // ).toFormat("h:mm a");
             maxTimeCarInPark.fromTime = DateTime.fromFormat(
               fromTime,
-              "HH:mm:ss"
-            ).toFormat("h:mm:ss a");
+              "HH:mm"
+            ).toFormat("HH:mm");
             maxTimeCarInPark.toTime = DateTime.fromFormat(
               toTime,
-              "HH:mm:ss"
-            ).toFormat("h:mm:ss a");
+              "HH:mm"
+            ).toFormat("HH:mm");
             maxTimeCarInPark.value = carInPark;
           }
         }
@@ -222,12 +230,12 @@ export default defineEventHandler(async (event) => {
           if (carInPark < minTimeCarInPark.value) {
             minTimeCarInPark.fromTime = DateTime.fromFormat(
               fromTime,
-              "HH:mm:ss"
-            ).toFormat("h:mm:ss a");
+              "HH:mm"
+            ).toFormat("HH:mm");
             minTimeCarInPark.toTime = DateTime.fromFormat(
               toTime,
-              "HH:mm:ss"
-            ).toFormat("h:mm:ss a");
+              "HH:mm"
+            ).toFormat("HH:mm");
             minTimeCarInPark.value = carInPark;
           }
         }
@@ -279,16 +287,15 @@ function convert24Hourto12HourFormat(time) {
   var hours = parseInt(timeParts[0]);
   var minutes = parseInt(timeParts[1]);
 
-  // If hours is 00, set it to 12
-  hours = hours === 0 ? 12 : hours;
-
   // Calculate the decimal representation of time
-  var decimal = hours + minutes / 60;
+  var timeDecimal = hours + minutes / 60;
 
-  // Convert to 12 hours format
-  var hours12 = hours % 12;
-  hours12 = hours12 === 0 ? 12 : hours12;
-  var ampm = hours < 12 ? "AM" : "PM";
+  // Determine the suffix (AM or PM)
+  var suffix = timeDecimal < 12 ? "AM" : "PM";
 
-  return hours12 + ":" + (minutes < 10 ? "0" : "") + minutes + ":00 " + ampm;
+  // Convert the hours component to 12-hour format. if 00, dont convert to 12
+  var hours12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+
+  // Return the formatted string
+  return hours12 + ":" + timeParts[1] + ":00 " + suffix;
 }
