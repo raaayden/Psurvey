@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
       const checkVehicle = await prisma.parking_season.findFirst({
         where: {
           vehicle: {
-            vehicle_plate_number: parseInt(vh),
+            vehicle_plate_number: vh,
           },
           project_id: projectID,
         },
@@ -57,10 +57,10 @@ export default defineEventHandler(async (event) => {
             vehicle: {
               connectOrCreate: {
                 where: {
-                  vehicle_plate_number: parseInt(vh),
+                  vehicle_plate_number: vh,
                 },
                 create: {
-                  vehicle_plate_number: parseInt(vh),
+                  vehicle_plate_number: vh,
                   created_by: "SYSTEM",
                   created_at: DateTime.now(),
                 },

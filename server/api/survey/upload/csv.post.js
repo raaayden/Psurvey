@@ -132,10 +132,10 @@ export default defineEventHandler(async (event) => {
             vehicle: {
               connectOrCreate: {
                 where: {
-                  vehicle_plate_number: parseInt(survey.car_plate_number),
+                  vehicle_plate_number: survey.car_plate_number,
                 },
                 create: {
-                  vehicle_plate_number: parseInt(survey.car_plate_number),
+                  vehicle_plate_number: survey.car_plate_number,
                   vehicle_type: "CAR",
                   created_by: "SYSTEM",
                   created_at: DateTime.now(),
@@ -183,10 +183,10 @@ export default defineEventHandler(async (event) => {
             vehicle: {
               connectOrCreate: {
                 where: {
-                  vehicle_plate_number: parseInt(survey.car_plate_number),
+                  vehicle_plate_number: survey.car_plate_number,
                 },
                 create: {
-                  vehicle_plate_number: parseInt(survey.car_plate_number),
+                  vehicle_plate_number: survey.car_plate_number,
                   vehicle_type: "CAR",
                   created_by: "SYSTEM",
                   created_at: DateTime.now(),

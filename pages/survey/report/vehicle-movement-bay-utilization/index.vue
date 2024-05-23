@@ -102,6 +102,17 @@ const assignedDateOption = async (name) => {
 
   if (dateList.value.statusCode == 200) {
     optionDate.value = dateList.value.data;
+
+    // Check if the query date is available in the list
+    if (qSurveyDate) {
+      const isDateAvailable = optionDate.value.find(
+        (date) => date.value == qSurveyDate
+      );
+
+      if (!isDateAvailable) {
+        filter.value.surveyDate = "";
+      }
+    }
   } else {
     optionDate.value = [
       {

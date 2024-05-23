@@ -138,7 +138,7 @@ model userrole {
 
 model vehicle {
   vehicle_id           Int              @id @default(autoincrement())
-  vehicle_plate_number Int?             @unique(map: "vehicle_plate_number")
+  vehicle_plate_number String?          @unique(map: "vehicle_plate_number") @db.VarChar(255)
   vehicle_type         String?          @db.VarChar(255)
   created_by           String?          @db.VarChar(255)
   created_at           DateTime?        @db.Timestamp(0)

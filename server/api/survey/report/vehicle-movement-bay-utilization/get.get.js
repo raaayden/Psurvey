@@ -63,44 +63,33 @@ export default defineEventHandler(async (event) => {
       where: {
         project_id: project.project_id,
         project_parker_type: parkerType ? parkerType : undefined,
+        // Check if surveyDate is available, then filter by surveyDate
         ...(surveyDate && {
           OR: [
             {
               vehicle_timein: {
-                gte: combinedDateTimeFrom
-                  ? combinedDateTimeFrom.toISO()
-                  : DateTime.fromISO(surveyDate).startOf("day"),
-                lte: combinedDateTimeTo
-                  ? undefined
-                  : DateTime.fromISO(surveyDate).endOf("day"),
+                gte: DateTime.fromISO(surveyDate).startOf("day"),
+                lte: DateTime.fromISO(surveyDate).endOf("day"),
               },
             },
             {
               vehicle_timeout: {
-                gte: combinedDateTimeTo
-                  ? undefined
-                  : DateTime.fromISO(surveyDate).startOf("day"),
-                lte: combinedDateTimeTo
-                  ? combinedDateTimeTo.toISO()
-                  : DateTime.fromISO(surveyDate).endOf("day"),
+                gte: DateTime.fromISO(surveyDate).startOf("day"),
+                lte: DateTime.fromISO(surveyDate).endOf("day"),
               },
             },
           ],
         }),
-        // Conditionally include vehicle_timein filter
-        ...(!surveyDate &&
-          combinedDateTimeFrom && {
-            vehicle_timein: {
-              gte: combinedDateTimeFrom.toISO(),
-            },
-          }),
-        // Conditionally include vehicle_timeout filter
-        ...(!surveyDate &&
-          combinedDateTimeTo && {
-            vehicle_timeout: {
-              lte: combinedDateTimeTo.toISO(),
-            },
-          }),
+        ...(combinedDateTimeFrom && {
+          vehicle_timein: {
+            gte: combinedDateTimeFrom.toISO(),
+          },
+        }),
+        ...(combinedDateTimeTo && {
+          vehicle_timein: {
+            lte: combinedDateTimeTo.toISO(),
+          },
+        }),
       },
       select: {
         survey_list_id: true,

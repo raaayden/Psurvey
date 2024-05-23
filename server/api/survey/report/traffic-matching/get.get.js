@@ -58,10 +58,10 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const getSurveyList = await prisma.survey_list.findMany({
+    let getSurveyList = await prisma.survey_list.findMany({
       where: {
         project_id: project.project_id,
-        project_parker_type: parkerType ? parkerType : undefined,
+        // project_parker_type: parkerType ? parkerType : undefined,
         ...(surveyDate && {
           OR: [
             {
@@ -105,10 +105,30 @@ export default defineEventHandler(async (event) => {
         survey_list_id: true,
         vehicle_timein: true,
         vehicle_timeout: true,
+        vehicle_id: true,
       },
     });
 
     console.log("getSurveyList: ", getSurveyList);
+
+    // Check if season parker type is selected
+    if (parkerType === "SEASON") {
+      // Check if there is a season parker type in the survey list from table parking_season
+      const seasonParker = await prisma.parking_season.findMany({
+        where: {
+          project_id: project.project_id,
+          season_status: "ACTIVE",
+        },
+      });
+
+      if (seasonParker.length > 0) {
+        getSurveyList = getSurveyList.filter((record) => {
+          return seasonParker.some(
+            (season) => season.vehicle_id === record.vehicle_id
+          );
+        });
+      }
+    }
 
     let entryRecord = 0;
     let exitRecord = 0;
