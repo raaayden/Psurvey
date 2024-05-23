@@ -84,7 +84,7 @@ onMounted(() => {
         </nuxt-link>
       </div>
 
-      <div class="flex gap-2 item-center justify-items-end">
+      <!-- <div class="flex gap-2 item-center justify-items-end">
         <VDropdown placement="bottom-end" distance="13" name="profile">
           <button class="icon-btn profile px-2">
             <img
@@ -116,7 +116,7 @@ onMounted(() => {
             </ul>
           </template>
         </VDropdown>
-      </div>
+      </div> -->
     </div>
   </div>
 

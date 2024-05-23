@@ -111,8 +111,7 @@ export default defineEventHandler(async (event) => {
 
     console.log("getSurveyList: ", getSurveyList);
 
-    // Check if season parker type is selected
-    if (parkerType === "SEASON") {
+    if (parkerType) {
       // Check if there is a season parker type in the survey list from table parking_season
       const seasonParker = await prisma.parking_season.findMany({
         where: {
@@ -120,13 +119,20 @@ export default defineEventHandler(async (event) => {
           season_status: "ACTIVE",
         },
       });
-
       if (seasonParker.length > 0) {
-        getSurveyList = getSurveyList.filter((record) => {
-          return seasonParker.some(
-            (season) => season.vehicle_id === record.vehicle_id
-          );
-        });
+        if (parkerType === "SEASON") {
+          getSurveyList = getSurveyList.filter((record) => {
+            return seasonParker.some(
+              (season) => season.vehicle_id === record.vehicle_id
+            );
+          });
+        } else if (parkerType === "CASUAL") {
+          getSurveyList = getSurveyList.filter((record) => {
+            return !seasonParker.some(
+              (season) => season.vehicle_id === record.vehicle_id
+            );
+          });
+        }
       }
     }
 

@@ -48,6 +48,11 @@ export default defineEventHandler(async (event) => {
           surveyDate + " " + surveyTimeFrom,
           "yyyy-MM-dd HH:mm"
         );
+      } else {
+        combinedDateTimeFrom = DateTime.fromFormat(
+          surveyDate + " 00:00",
+          "yyyy-MM-dd HH:mm"
+        );
       }
 
       if (surveyTimeTo) {
@@ -56,40 +61,17 @@ export default defineEventHandler(async (event) => {
           surveyDate + " " + surveyTimeTo,
           "yyyy-MM-dd HH:mm"
         );
+      } else {
+        combinedDateTimeTo = DateTime.fromFormat(
+          surveyDate + " 23:59",
+          "yyyy-MM-dd HH:mm"
+        );
       }
     }
 
     const getSurveyList = await prisma.survey_list.findMany({
       where: {
         project_id: project.project_id,
-        project_parker_type: parkerType ? parkerType : undefined,
-        // Check if surveyDate is available, then filter by surveyDate
-        ...(surveyDate && {
-          OR: [
-            {
-              vehicle_timein: {
-                gte: DateTime.fromISO(surveyDate).startOf("day"),
-                lte: DateTime.fromISO(surveyDate).endOf("day"),
-              },
-            },
-            {
-              vehicle_timeout: {
-                gte: DateTime.fromISO(surveyDate).startOf("day"),
-                lte: DateTime.fromISO(surveyDate).endOf("day"),
-              },
-            },
-          ],
-        }),
-        ...(combinedDateTimeFrom && {
-          vehicle_timein: {
-            gte: combinedDateTimeFrom.toISO(),
-          },
-        }),
-        ...(combinedDateTimeTo && {
-          vehicle_timein: {
-            lte: combinedDateTimeTo.toISO(),
-          },
-        }),
       },
       select: {
         survey_list_id: true,
@@ -97,6 +79,8 @@ export default defineEventHandler(async (event) => {
         vehicle_timeout: true,
       },
     });
+
+    // console.log("getSurveyList", getSurveyList);
 
     const getLookupVMBUR = await getLookupListOptions("VMBUR");
     if (!getLookupVMBUR) {
@@ -115,10 +99,6 @@ export default defineEventHandler(async (event) => {
       // Convert fromTime to become 12:00:00 AM and toTime to become 12:29:00 AM
       let fromTime = lookup.value.split("-")[0];
       let toTime = lookup.value.split("-")[1];
-
-      // Convert fromTime and toTime to 12 hours format
-      // fromTime = convert24Hourto12HourFormat(fromTime);
-      // toTime = convert24Hourto12HourFormat(toTime);
 
       data.push({
         no: index + 1,
@@ -169,6 +149,29 @@ export default defineEventHandler(async (event) => {
       for (let j = 0; j < getSurveyList.length; j++) {
         const survey = getSurveyList[j];
 
+        // if vehicle_timein is null, skip the loop
+        if (!survey.vehicle_timein && !survey.vehicle_timeout) continue;
+
+        // Check if surveyTimeFrom available, then check if vehicle_timein is less than surveyTimeFrom and vehicle_timeout is less than surveyTimeFrom
+        if (combinedDateTimeFrom) {
+          if (DateTime.fromJSDate(survey.vehicle_timein) < combinedDateTimeFrom)
+            continue;
+
+          if (
+            DateTime.fromJSDate(survey.vehicle_timeout) < combinedDateTimeFrom
+          )
+            continue;
+        }
+
+        // Check if surveyTimeTo available, then check if vehicle_timein is more than surveyTimeTo and vehicle_timeout is more than surveyTimeTo
+        if (combinedDateTimeTo) {
+          if (DateTime.fromJSDate(survey.vehicle_timein) > combinedDateTimeTo)
+            continue;
+
+          if (DateTime.fromJSDate(survey.vehicle_timeout) > combinedDateTimeTo)
+            continue;
+        }
+
         if (!date)
           date = DateTime.fromJSDate(survey.vehicle_timein).toFormat(
             "dd/MM/yyyy"
@@ -190,14 +193,6 @@ export default defineEventHandler(async (event) => {
           carTotalEntry += 1;
 
           if (carInPark >= maxTimeCarInPark.value) {
-            // maxTimeCarInPark.fromTime = DateTime.fromFormat(
-            //   fromTime,
-            //   "HH:mm:ss"
-            // ).toFormat("h:mm a");
-            // maxTimeCarInPark.toTime = DateTime.fromFormat(
-            //   toTime,
-            //   "HH:mm:ss"
-            // ).toFormat("h:mm a");
             maxTimeCarInPark.fromTime = DateTime.fromFormat(
               fromTime,
               "HH:mm"
