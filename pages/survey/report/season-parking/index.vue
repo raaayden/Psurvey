@@ -31,6 +31,13 @@ if (projectList.value.statusCode == 200) {
     label: "Select Project Name",
     value: "",
   });
+} else {
+  projectOptions.value = [
+    {
+      label: "No Project Available",
+      value: "",
+    },
+  ];
 }
 
 const showReport = ref(false);
