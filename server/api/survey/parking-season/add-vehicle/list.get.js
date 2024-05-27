@@ -2,12 +2,29 @@ export default defineEventHandler(async (event) => {
   try {
     const { projectID } = getQuery(event);
 
-    const getAvailableVehicle = await prisma.vehicle.findMany({
-      select: {
-        vehicle_id: true,
-        vehicle_plate_number: true,
+    const getAvailableVehicle = await prisma.survey_list.findMany({
+      where: {
+        project_id: parseInt(projectID),
       },
+      select: {
+        vehicle: {
+          select: {
+            vehicle_id: true,
+            vehicle_plate_number: true,
+          },
+        },
+      },
+      distinct: ["vehicle_id"],
     });
+
+    console.log("getAvailableVehicle: ", getAvailableVehicle);
+
+    // const getAvailableVehicle = await prisma.vehicle.findMany({
+    //   select: {
+    //     vehicle_id: true,
+    //     vehicle_plate_number: true,
+    //   },
+    // });
 
     if (!getAvailableVehicle || getAvailableVehicle.length === 0) {
       return {
@@ -22,23 +39,26 @@ export default defineEventHandler(async (event) => {
         season_status: "ACTIVE",
         project_id: parseInt(projectID),
         vehicle_id: {
-          in: getAvailableVehicle.map((vehicle) => vehicle.vehicle_id),
+          in: getAvailableVehicle.map((v) => v.vehicle.vehicle_id),
         },
       },
     });
 
     // If exist remove the vehicle from available vehicle
     const remapAvailableVehicle = getAvailableVehicle.filter(
-      (vehicle) =>
+      (v) =>
         !getVehicleSeasonParking.some(
-          (seasonParking) => seasonParking.vehicle_id === vehicle.vehicle_id
+          (seasonParking) => seasonParking.vehicle_id === v.vehicle.vehicle_id
         )
     );
 
     // Remap the vehicle to be used in the frontend
     const remapOptionVehicle = remapAvailableVehicle.map(
-      (vehicle) => vehicle.vehicle_plate_number
+      (v) => v.vehicle.vehicle_plate_number
     );
+
+    // Sort the vehicle
+    remapOptionVehicle.sort();
 
     return {
       statusCode: 200,
